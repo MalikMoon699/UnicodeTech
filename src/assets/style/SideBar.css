@@ -1,0 +1,244 @@
+.mobile-topbar-container {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100vw;
+  background: var(--gradian-background) !important;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.mobile-topbar-container > .sidebar-logo {
+  height: 36px;
+  width: 36px;
+}
+
+.mobile-topbar-container > button {
+  font-size: 0px;
+  border: none;
+  background: transparent;
+  color: var(--card-foreground);
+}
+
+.sidebar-container {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 260px;
+  height: 100vh;
+  transition: 0.3s;
+  background-color: var(--background);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.sidebar-desktop-closed {
+  width: 65px;
+}
+
+.main-content-half-sidebar {
+  margin-left: 65px;
+}
+
+.mobile-sidebar-container {
+  display: none;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 30px 10px 15px;
+}
+
+.sidebar-header > div {
+  width: 40px;
+  height: 40px;
+}
+
+.sidebar-logo {
+  height: 100%;
+  width: 100%;
+}
+
+.sidebar-close-btn {
+  font-size: 0px;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: var(--primary-hover);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 3px;
+}
+
+.sidebar-close-btn > span {
+  display: inline-block;
+  transition: 0.3s;
+}
+
+.sidebar-close-btn:hover > .right-arrow {
+  transform: translateX(2px);
+}
+
+.sidebar-close-btn:hover > .left-arrow {
+  transform: translateX(-2px);
+}
+
+.mobile-sidebar-close-btn {
+  display: none;
+}
+
+.desktop-sidebar-close-btn {
+  display: block;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background-color: var(--border);
+}
+
+.skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px;
+}
+
+.skeleton-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    #e0e0e0 25%,
+    #f5f5f5 50%,
+    #e0e0e0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.skeleton-text {
+  width: 120px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    #e0e0e0 25%,
+    #f5f5f5 50%,
+    #e0e0e0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.sidebar-menu {
+  padding: 16px;
+  flex: 1;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  color: var(--card-foreground);
+  transition: background 0.2s ease;
+}
+
+.sidebar-item:hover {
+  background-color: var(--border);
+}
+
+.sidebar-item-active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  position: relative;
+}
+
+.sidebar-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-label {
+  font-size: 15px;
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-logout-btn {
+  width: 100%;
+  background-color: transparent;
+  color: var(--card-foreground);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.sidebar-logout-btn:hover {
+  background-color: #ff000021;
+  color: #e90e0e;
+}
+
+.sidebar-logout-btn > span {
+  transition: 0.3s;
+}
+
+.sidebar-logout-btn:hover > span {
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar-container {
+    display: none;
+  }
+  .mobile-sidebar-container {
+    display: flex;
+  }
+  .main-content-half-sidebar {
+    margin-left: 0px !important;
+  }
+  .main-content {
+    margin-top: 60px;
+    margin-left: 0px !important;
+  }
+  .sidebar-closed {
+    left: -260px;
+  }
+  .mobile-topbar-container {
+    display: flex;
+  }
+  .sidebar-close-btn {
+    padding: 0px;
+  }
+}

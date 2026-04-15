@@ -1,0 +1,63 @@
+.offline-and-content {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  padding: 40px;
+  text-align: center;
+}
+
+.offline-and-icon {
+  margin-bottom: 20px;
+  color: var(--card-foreground);
+}
+
+.offline-and-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--status-rejected);
+  margin-bottom: 15px;
+}
+
+.offline-and-message {
+  font-size: 16px;
+  color: var(--muted-foreground);
+  margin-bottom: 25px;
+}
+
+.offline-and-retry-btn {
+  padding: 12px 30px;
+  font-size: 16px;
+  background: var(--status-approved);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.offline-and-retry-btn:hover {
+  background: var(--primary);
+  transform: scale(1.01);
+}
+
+@media (max-width: 768px) {
+  .offline-and-content {
+    padding: clamp(14px, 2vw, 40px);
+  }
+
+  .offline-and-icon {
+    margin-bottom: clamp(12px, 2vw, 20px);
+  }
+
+  .offline-and-title {
+    font-size: clamp(18px, 2vw, 28px);
+  }
+
+  .offline-and-message {
+    font-size: clamp(14px, 2vw, 16px);
+  }
+}

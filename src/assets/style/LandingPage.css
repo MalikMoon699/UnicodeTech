@@ -1,0 +1,347 @@
+.landing-page-container {
+  font-family: "Inter", sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+}
+
+.landing-page-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+  opacity: 0.9;
+}
+
+.landing-page-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 1rem;
+}
+
+.landing-page-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-page-logo-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.landing-page-logo-icon > img {
+  height: 30px;
+  width: 30px;
+  object-fit: cover;
+}
+
+.landing-page-icon {
+  height: 20px;
+  width: 20px;
+}
+
+.landing-page-logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.landing-page-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.landing-page-icon-btn {
+  background: transparent;
+  color: var(--card-foreground);
+  border: none;
+  padding: 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.3s;
+  height: 33px;
+  width: 33px;
+}
+
+.landing-page-icon-btn:hover {
+  background: var(--primary-hover);
+}
+
+.landing-page-btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.landing-page-btn-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.landing-page-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.landing-page-btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--foreground);
+  transition: 0.3s;
+}
+
+.landing-page-btn-ghost:hover {
+  background: var(--primary-hover);
+  color: var(--primary);
+}
+
+.landing-page-btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
+.landing-page-btn-outline:hover {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.landing-page-btn-secondary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.landing-page-btn-secondary:hover > svg {
+  transform: translateX(3px);
+}
+
+.landing-page-hero {
+  position: sticky;
+  top: 65px;
+  left: 0px;
+  width: 100%;
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  z-index: 0;
+  padding: 5rem 1rem;
+  text-align: center;
+  background: var(--gradian-background);
+}
+
+.landing-page-hero-inner {
+  max-width: 794px;
+  margin: 0 auto;
+}
+
+.landing-page-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.landing-page-hero-title {
+  font-size: 3.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.landing-page-text-primary {
+  color: var(--primary);
+}
+
+.landing-page-hero-subtitle {
+  margin-top: 1.5rem;
+  font-size: 1.35rem;
+  line-height: 1.75rem;
+  color: var(--muted-foreground);
+}
+
+.landing-hero-btn {
+  margin-top: 12px;
+  padding: 0.6rem 1.5rem;
+}
+
+.landing-hero-btn:hover > .icon {
+  transform: translateX(3px);
+}
+
+/* Features Section */
+.landing-page-features {
+  padding: 3rem 1rem;
+}
+
+.landing-page-features-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.landing-page-section-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.landing-page-section-label {
+  color: var(--primary);
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 0.3rem;
+}
+
+.landing-page-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.landing-page-section-subtitle {
+  color: var(--muted-foreground);
+  margin-top: 0.5rem;
+}
+
+/* Feature Cards Grid */
+.landing-page-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.landing-page-feature-card {
+  border-radius: var(--radius);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  text-align: start;
+  transition: all 0.3s;
+}
+
+.landing-page-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.landing-page-feature-icon-wrapper {
+  height: 48px;
+  width: 48px;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-hover);
+  color: var(--primary);
+}
+
+.landing-page-feature-card:hover > .landing-page-feature-icon-wrapper {
+  background-color: var(--primary);
+  color: var(--background);
+}
+
+.landing-page-icon-feature {
+  height: 24px;
+  width: 24px;
+}
+
+.landing-page-feature-title {
+  font-weight: 600;
+  margin: 0.5rem 0px;
+  font-size: inherit;
+}
+
+.landing-page-feature-desc {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+/* Role Cards Grid */
+.landing-page-role-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.landing-page-role-card-icon-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-card-icon {
+  height: 50px;
+  width: 50px;
+  background-color: #f59f0a3b;
+  color: #f59f0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.role-card-icon.manager {
+  background-color: var(--primary-hover);
+  color: var(--primary);
+}
+.role-card-icon.user {
+  background-color: #2bd4bd33;
+  color: #2bd4bd;
+}
+
+.landing-page-role-title {
+  margin-top: 8px;
+  width: 100%;
+  text-align: center;
+  font-size: 22px;
+}
+
+.landing-page-role-list {
+  margin-top: 15px;
+  list-style: none;
+  padding-left: 0;
+}
+
+.landing-page-role-list-item {
+  margin-bottom: 9px;
+  font-size: 16px;
+  font-weight: 300;
+  position: relative;
+  padding-left: 20px;
+}
+
+.landing-page-role-list-item::before {
+  content: "✔";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--primary);
+  font-size: 14px;
+} 
+
+.landing-page-footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+}

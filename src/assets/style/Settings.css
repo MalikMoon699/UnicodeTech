@@ -1,0 +1,240 @@
+.settings-page-header {
+  margin-bottom: 2rem;
+}
+
+.settings-page-title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.settings-page-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  color: var(--muted-foreground);
+}
+
+.settings-section {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem;
+  margin: 1.5rem 0px;
+  box-shadow: 0px 0px 8px var(--muted);
+}
+
+.settings-section:last-child {
+  margin-bottom: 0px !important;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-section-header svg {
+  color: var(--primary);
+  margin-top: 0.2rem;
+}
+
+.settings-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.settings-section-description {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  margin-top: 0.15rem;
+}
+
+.settings-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.settings-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--card-foreground);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--card-foreground);
+  overflow: hidden;
+}
+
+.settings-avatar img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.settings-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.settings-hint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.settings-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 1.5rem 0;
+}
+
+.settings-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.settings-grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.settings-primary-button {
+  height: 40px;
+  min-width: 145px;
+  margin-top: 1.5rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: 12px;
+  border: none;
+  background-color: var(--primary);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0px 0px 8px var(--muted);
+  transition: 0.3s;
+}
+
+.settings-primary-button:hover {
+  background-color: var(--status-approved);
+  box-shadow: 0px 0px 8px var(--primary);
+  transform: translateY(-1px);
+}
+
+.settings-secondary-button {
+  height: 40px;
+  min-width: 160px;
+  margin-top: 1.25rem;
+  padding: 0.65rem 1.1rem;
+
+  border-radius: 12px;
+  border: 1px solid var(--border);
+
+  background-color: var(--card);
+  color: var(--card-foreground);
+
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.settings-secondary-button:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.settings-outline-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  padding: 0.45rem 0.8rem;
+
+  border-radius: 10px;
+  border: 1px solid var(--border);
+
+  background-color: var(--card);
+  color: var(--card-foreground);
+
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.settings-outline-button:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.settings-toggle-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.settings-toggle-description {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  margin-top: 0.15rem;
+}
+
+.settings-toggle-row input[type="checkbox"] {
+  width: 42px;
+  height: 22px;
+  appearance: none;
+  background-color: var(--border);
+  border-radius: 999px;
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.settings-toggle-row input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--card);
+
+  transition: transform 0.2s ease;
+}
+
+.settings-toggle-row input[type="checkbox"]:checked {
+  background-color: var(--primary);
+}
+
+.settings-toggle-row input[type="checkbox"]:checked::before {
+  transform: translateX(20px);
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 640px) {
+  .settings-grid-two {
+    grid-template-columns: 1fr;
+  }
+}

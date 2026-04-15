@@ -1,0 +1,226 @@
+/* =========== custom Input =========== */
+.custom-input-label {
+  font-size: 13px;
+  margin-top: 10px;
+  display: block;
+  color: var(--card-foreground);
+}
+
+.custom-input,
+.custom-textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  outline: 0;
+  transition: 0.3s;
+}
+
+.custom-input:focus,
+.custom-textarea:focus {
+  border-color: var(--primary);
+  color: var(--card-foreground);
+}
+
+.custom-input-icon:focus-within > svg {
+  color: var(--primary);
+}
+
+.custom-textarea {
+  height: 200px;
+  resize: none;
+}
+
+.custom-input-icon {
+  position: relative;
+}
+
+.custom-input-icon > svg {
+  position: absolute;
+  top: 17px;
+  left: 10px;
+  font-size: 0px;
+  color: var(--muted-foreground);
+  transition: 0.3s;
+}
+
+.custom-input-icon > .custom-input {
+  padding-left: 32px;
+  padding-right: 24px;
+}
+
+.custom-password-toggel {
+  position: absolute;
+  top: 17px;
+  right: 10px;
+  font-size: 0px;
+  color: var(--muted-foreground);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+
+/* ======== Profile Image Style ============ */
+.profile-image-container {
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.profile-image-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-image-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.profile-image-inner img.loaded {
+  opacity: 1;
+}
+
+.profile-image-loader {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(125deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  animation: shimmer 9s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -100px 0;
+  }
+  100% {
+    background-position: 100px 0;
+  }
+}
+
+.profile-image-fallback {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* =========== image view model =========== */
+
+.model-img-preview-content {
+  position: relative;
+  background-color: transparent;
+  border-radius: 8px;
+  max-width: 97vw;
+  max-height: 90vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-model-close {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 100;
+  font-size: 0px;
+  padding: 3px;
+  border: 1px solid #fdfdfd;
+  border-radius: 20px;
+  color: #fdfdfd;
+  background: #ffffff80;
+  box-shadow: 0px 0px 8px #00000024;
+  cursor: pointer;
+}
+
+.model-img-preview-content img {
+  max-width: 100%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain !important;
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.model-img-preview-content .profile-image-inner {
+  overflow: hidden;
+}
+
+.model-img-preview-content .profile-image-inner img {
+  transition: transform 0.2s ease;
+  object-fit: contain;
+}
+
+.model-img-preview-content .profile-image-inner img.zoomed {
+  transform: scale(2);
+}
+
+.model-img-preview-content .profile-image-inner img {
+  transition: transform 0.3s ease;
+}
+
+.profile-image-inner img.zoomed {
+  transform: scale(2);
+}
+
+/* ======== TopBar Style ============ */
+
+.custom-topbar-container {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: -webkit-fill-available;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  padding: 23px 12px;
+  opacity: 0.8;
+}
+
+.custom-topbar-inner-container {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--foreground);
+}
+
+.custom-topbar-title {
+  font-size: 22px;
+}
+
+.custom-topbar-credit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  background-color: transparent;
+  transition: 0.3s;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.custom-topbar-credit:hover {
+  background-color: var(--muted);
+}
