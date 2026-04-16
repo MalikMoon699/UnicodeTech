@@ -36,7 +36,7 @@
   --status-approved: #22c55e;
   --status-rejected: #e63c3c;
   --status-rejected-hover: #e63c3c21;
-  --shadow: #00000014;
+  --shadow: #00000029;
 }
 
 .darkMode {
@@ -65,7 +65,7 @@
   --status-approved: #22c55e;
   --status-rejected: #e64d4d;
   --status-rejected-hover: #e63c3c21;
-  --shadow: #ffffff29;
+  --shadow: #ffffff1c;
 }
 
 body {

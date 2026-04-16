@@ -611,3 +611,36 @@ export const Header = ({ title = "", desc = "" }) => {
     </div>
   );
 };
+
+export const Tabs = ({
+  disabled = false,
+  tab,
+  setTab,
+  options,
+  outerWidth = "100%",
+  innerWidth = "fit-content",
+}) => {
+  return (
+    <div style={{ width: outerWidth }} className="custom-tab-outer-container">
+      <div style={{ width: innerWidth }} className="custom-tab-inner-container">
+        {options?.map((item, index) => {
+          const isActive = item?.value === tab;
+          const Icon = item?.icon;
+          return (
+            <button
+              className={`custom-tab-item ${isActive ? "active" : ""}`}
+              disabled={disabled}
+              key={index}
+              onClick={() => setTab(item?.value)}
+            >
+              <span className="icon">
+                <Icon size={20} />
+              </span>
+              {item?.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

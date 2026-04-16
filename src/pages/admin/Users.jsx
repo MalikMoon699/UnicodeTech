@@ -16,7 +16,7 @@ import { limit } from "../../utils/constants";
 import { toast } from "sonner";
 import Loader from "../../components/Loader";
 import { formateDate, timeAgo } from "../../utils/helper";
-import { Ban, User, UserCheck, UserPen, UserX } from "lucide-react";
+import { User, UserCheck, UserPen, UserX } from "lucide-react";
 
 const Users = () => {
   const [loading, setLoading] = useState(true);
