@@ -5,7 +5,13 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  onSnapshot,
+} from "firebase/firestore";
 import { auth, db } from "../utils/FirebaseConfig";
 import { generateCustomId, generateSearchTokens } from "../utils/helper";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +26,6 @@ export const AuthProvider = ({ children }) => {
   const [authAllow, setAuthAllow] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const skipSyncRef = useRef(false);
-
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -107,6 +112,33 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!currentUser?.roleCollection || !currentUser?.docId) return;
+
+    const userRef = doc(db, currentUser.roleCollection, currentUser.docId);
+
+    const unsubscribe = onSnapshot(userRef, async (snap) => {
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+
+      if (data.status !== "active") {
+        await signOut(auth);
+        setCurrentUser(null);
+        setAuthAllow(false);
+        if (data.status === "banned") {
+          toast.error("You are banned");
+        } else if (data.status === "pending") {
+          toast.info("Account pending approval.");
+        }
+
+        navigate("/auth", { replace: true });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.docId, currentUser?.roleCollection]);
+
   const signUp = async ({ name, email, password }) => {
     const res = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -124,7 +156,7 @@ export const AuthProvider = ({ children }) => {
       email,
       role: "user",
       profileImage: "",
-      status: "active",
+      status: "pending",
       createdAt: serverTimestamp(),
       isOnline: true,
       lastSeen: serverTimestamp(),
@@ -168,6 +200,16 @@ export const AuthProvider = ({ children }) => {
     if (!userSnap.exists()) throw new Error("User not found");
 
     const data = userSnap.data();
+
+    if (data.status !== "active") {
+      await signOut(auth);
+
+      if (data.status === "pending") {
+        throw new Error("Account pending approval");
+      }
+
+      throw new Error("Account banned");
+    }
 
     skipSyncRef.current = true;
 

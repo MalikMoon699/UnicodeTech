@@ -33,7 +33,6 @@ import { usePresence } from "./utils/hooks/usePresence.js";
 
 const App = () => {
 const {currentUser}=useAuth();
-
  usePresence(currentUser);
 
   return (

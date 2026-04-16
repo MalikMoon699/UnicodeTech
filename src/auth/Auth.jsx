@@ -8,7 +8,6 @@ const Auth = () => {
   const images = [IMAGES.auth1, IMAGES.auth2, IMAGES.auth3];
   const [formType, setFormType] = useState("");
   const [searchParams] = useSearchParams();
-  console.log("at auth--->");
 
   useEffect(() => {
     const type = searchParams.get("formType");

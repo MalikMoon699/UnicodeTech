@@ -377,8 +377,6 @@ export const StorageSearch = ({
   };
 
   const handleClearstorage = () => {
-    console.log("hit");
-
     setHistory([]);
     localStorage.removeItem(storage);
   };

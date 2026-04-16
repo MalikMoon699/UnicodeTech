@@ -42,10 +42,7 @@ const SignUp = ({ setFormType }) => {
 
     try {
       await signUp({ name, email, password });
-
-      toast.success("Account created successfully!");
-
-      navigate("/dashboard", { replace: true });
+      setFormType("signIn");
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Signup failed");

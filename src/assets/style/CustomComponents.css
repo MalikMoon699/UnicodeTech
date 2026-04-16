@@ -63,7 +63,6 @@
   cursor: pointer;
 }
 
-
 /* ======== Profile Image Style ============ */
 .profile-image-container {
   border-radius: 50%;
@@ -224,7 +223,6 @@
 .custom-topbar-credit:hover {
   background-color: var(--muted);
 }
-
 
 /* ============ Load More ============ */
 .custom-loadMore-container {
@@ -594,6 +592,10 @@
   min-width: 72px;
   border-radius: 4px;
   padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .custom-table-action-btn:hover {

@@ -5,11 +5,6 @@ import Loader from "../components/Loader";
 
 export const ProtectedRoute = ({ children, role = [] }) => {
   const { authAllow, currentUser, authLoading } = useAuth();
-  console.log("for ProtectedRoute---->", {
-    authLoading: authLoading,
-    authAllow: authAllow,
-    currentUser: currentUser,
-  });
   if (authLoading) {
     return (
       <Loader
@@ -42,12 +37,6 @@ export const ProtectedRoute = ({ children, role = [] }) => {
 
 export const PublicRoute = ({ children }) => {
   const { authAllow, currentUser, authLoading } = useAuth();
-  console.log("for PublicRoute---->", {
-    authLoading: authLoading,
-    authAllow: authAllow,
-    currentUser: currentUser,
-  });
-
   if (authLoading) {
     return (
       <Loader
