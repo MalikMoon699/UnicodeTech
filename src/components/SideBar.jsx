@@ -14,7 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
 const SideBar = ({ isHalfSideBar, setIsHalfSideBar }) => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, authLoading } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,9 +76,9 @@ const SideBar = ({ isHalfSideBar, setIsHalfSideBar }) => {
           >
             <span className={isHalfSideBar ? "right-arrow" : "left-arrow"}>
               {isHalfSideBar ? (
-                <ChevronRight size={26} />
+                <LucideIcons.PanelLeftOpen size={30} />
               ) : (
-                <ChevronLeft size={26} />
+                <LucideIcons.PanelLeftClose size={30} />
               )}
             </span>
           </button>
@@ -90,7 +90,7 @@ const SideBar = ({ isHalfSideBar, setIsHalfSideBar }) => {
           style={{ padding: isHalfSideBar ? "12px 8px" : "" }}
           className="sidebar-menu"
         >
-          {loading ? (
+          {authLoading ? (
             <SidebarSkeleton isHalfSideBar={isHalfSideBar} />
           ) : (
             SidebarMenuItems.map((item, index) => {
@@ -168,7 +168,7 @@ const SideBar = ({ isHalfSideBar, setIsHalfSideBar }) => {
         <div className="sidebar-divider" />
 
         <nav className="sidebar-menu">
-          {loading ? (
+          {authLoading ? (
             <SidebarSkeleton isHalfSideBar={isHalfSideBar} />
           ) : (
             SidebarMenuItems.map((item, index) => {

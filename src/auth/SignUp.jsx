@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
 import { Input } from "../components/CustomComponents";
-import { signUpHelper } from "../services/auth.services";
+import { useAuth } from "../context/AuthContext";
 
 const SignUp = ({ setFormType }) => {
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,18 +37,18 @@ const SignUp = ({ setFormType }) => {
 
   const handleSignUp = async () => {
     if (!validations()) return;
+
     setLoading(true);
+
     try {
-      await signUpHelper({ name, email, password });
+      await signUp({ name, email, password });
+
       toast.success("Account created successfully!");
-      navigate("/auth?formType=signIn");
+
+      navigate("/dashboard", { replace: true });
     } catch (err) {
-      console.error("Signup failed:", err);
-      if (err.code === "auth/email-already-in-use") {
-        toast.error("Email already exists");
-      } else {
-        toast.error("Signup failed");
-      }
+      console.error(err);
+      toast.error(err.message || "Signup failed");
     } finally {
       setLoading(false);
     }

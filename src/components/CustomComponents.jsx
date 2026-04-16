@@ -1,7 +1,17 @@
-import { useState } from "react";
-import { Eye, EyeClosed, X, Zap } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../assets/style/CustomComponents.css";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeClosed,
+  Search,
+  X,
+  Zap,
+} from "lucide-react";
 import { IMAGES } from "../utils/constants";
+import Loader from "./Loader";
 import { useAuth } from "../context/AuthContext";
 
 export const Input = ({
@@ -282,5 +292,324 @@ export const TopBar = ({ title = "", updateCredits = null }) => {
         </div>
       )}
     </>
+  );
+};
+
+export const LoadMore = ({
+  loading = false,
+  disabled = false,
+  show = false,
+  onLoad,
+  style = {},
+}) => {
+  return (
+    show && (
+      <div style={style} className="custom-loadMore-container">
+        {loading ? (
+          <Loader stroke="3" size="30" />
+        ) : (
+          <button
+            disabled={disabled}
+            onClick={onLoad}
+            className="custom-load-more-btn"
+          >
+            Load More
+          </button>
+        )}
+      </div>
+    )
+  );
+};
+
+export const StorageSearch = ({
+  disabled = false,
+  setValue,
+  placeholder = "Search...",
+  margin = "",
+  width = "",
+  storage = "searchHistory",
+}) => {
+  const [search, setSearch] = useState("");
+  const [history, setHistory] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const boxRef = useRef();
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem(storage)) || [];
+    setHistory(stored);
+  }, [storage]);
+
+  const handleSearch = () => {
+    if (!search.trim()) return;
+    setValue(search);
+    let updatedHistory = [search, ...history.filter((item) => item !== search)];
+    localStorage.setItem(storage, JSON.stringify(updatedHistory));
+    setHistory(updatedHistory);
+    setShowSuggestions(false);
+  };
+
+  const handleClearSearch = () => {
+    setSearch("");
+    setValue("");
+    setShowSuggestions(false);
+  };
+
+  const filteredHistory = history?.filter((item) =>
+    item.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const handleRemoveItem = (itemToRemove) => {
+    const updated = history.filter((item) => item !== itemToRemove);
+
+    setHistory(updated);
+    localStorage.setItem(storage, JSON.stringify(updated));
+  };
+
+  const handleClearstorage = () => {
+    console.log("hit");
+
+    setHistory([]);
+    localStorage.removeItem(storage);
+  };
+
+  return (
+    <div className="customs-search-box" ref={boxRef} style={{ margin, width }}>
+      <Search className="customs-search-icon" />
+      <input
+        disabled={disabled}
+        value={search}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (!value.trim()) {
+            handleClearSearch();
+          } else {
+            setSearch(value);
+            setShowSuggestions(true);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            handleSearch();
+          }
+        }}
+        onFocus={() => setShowSuggestions(true)}
+        placeholder={placeholder}
+        className="customs-search-input"
+      />
+      {search.trim() && (
+        <X
+          className="customs-search-icon icon custom-suggestion-item-remove-btn"
+          size={15}
+          onClick={handleClearSearch}
+        />
+      )}
+      {showSuggestions && (
+        <div className="custom-search-suggestions">
+          {filteredHistory.length > 0 ? (
+            <>
+              <div className="custom-suggestion-items-container">
+                {filteredHistory.map((item, index) => (
+                  <div
+                    key={index}
+                    className="custom-suggestion-item"
+                    onClick={() => {
+                      setSearch(item);
+                      setValue(item);
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    <p className="elepsis">{item}</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveItem(item);
+                      }}
+                      className="icon custom-suggestion-item-remove-btn"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="custom-suggestion-item"
+                style={{
+                  justifyContent: "center",
+                  borderTop: "1px solid var(--border)",
+                  padding: "10px 3px",
+                }}
+                onClick={handleClearstorage}
+              >
+                Clear All
+              </div>
+            </>
+          ) : (
+            <div
+              className="custom-suggestion-item"
+              style={{
+                justifyContent: "center",
+                padding: "15px 6px",
+                cursor: "default",
+              }}
+            >
+              No history found.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const SearchInput = ({
+  disabled = false,
+  setValue,
+  value,
+  placeholder = "Search...",
+  margin = "",
+  width = "",
+}) => {
+  return (
+    <div className="customs-search-box" style={{ margin, width }}>
+      <Search className="customs-search-icon" />
+      <input
+        disabled={disabled}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        className="customs-search-input"
+      />
+    </div>
+  );
+};
+
+export const Selector = ({
+  disabled = false,
+  filter,
+  setFilter,
+  options,
+  position = "right",
+  width = "100%",
+}) => {
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const selectorRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (selectorRef.current && !selectorRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const sortedOptions = useMemo(() => {
+    if (!options || !filter) return options;
+
+    const selected = options.find((opt) => opt.filter === filter);
+    const others = options.filter((opt) => opt.filter !== filter);
+
+    return selected ? [selected, ...others] : options;
+  }, [options, filter]);
+
+  const selectedOption = options?.find((option) => option.filter === filter);
+
+  return (
+    <div
+      ref={selectorRef}
+      onClick={() => setIsFilterOpen(!isFilterOpen)}
+      disabled={disabled}
+      style={{ width }}
+      className={`customers-filter-container ${disabled ? "disabled" : ""}`}
+    >
+      <div className="customers-filter-selector">
+        <span className="elepsis">{selectedOption?.label || filter}</span>
+        <span className="icon">
+          {isFilterOpen ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+        </span>
+      </div>
+      {isFilterOpen && (
+        <div
+          className={`customers-filter-selection-container ${
+            position === "left"
+              ? "customers-filter-selection-container-left"
+              : ""
+          }`}
+        >
+          {sortedOptions &&
+            sortedOptions.map((option, index) => {
+              const isActive = option?.filter === filter;
+              return (
+                <button
+                  key={index}
+                  disabled={isActive}
+                  onClick={() => {
+                    setFilter(option?.filter);
+                    setIsFilterOpen(false);
+                  }}
+                  className={`customers-filter-item ${
+                    isActive ? "active" : ""
+                  }`}
+                >
+                  {isActive && (
+                    <span>
+                      <Check size={13} />
+                    </span>
+                  )}
+                  {option?.label}
+                </button>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const StatesCard = ({
+  icon: Icon,
+  iColor = "var(--primary)",
+  title = "",
+  value = "",
+  loading = false,
+}) => {
+  return (
+    <div className="custom-dashboard-stat-card">
+      <div className="custom-dashboard-stat-card-content">
+        <p className="custom-dashboard-stat-title">{title}</p>
+        <h3 className="custom-dashboard-stat-value">
+          {loading ? <Loader size="25" stroke="2" /> : <>{value}</>}
+        </h3>
+      </div>
+      <div className="custom-dashboard-stat-icon">
+        <Icon color={iColor} />
+      </div>
+    </div>
+  );
+};
+
+export const Header = ({ title = "", desc = "" }) => {
+  return (
+    <div className="custom-header-container">
+      <h1 className="custom-header-title">{title}</h1>
+      <p className="custom-header-desc">{desc}</p>
+    </div>
   );
 };

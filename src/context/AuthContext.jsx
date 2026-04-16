@@ -1,20 +1,26 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../utils/FirebaseConfig";
+import { generateCustomId, generateSearchTokens } from "../utils/helper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { auth, db } from "../utils/FirebaseConfig";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
 
 const AuthCtx = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const navigate = useNavigate();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentUser, setCurrentUser] = useState(null);
   const [authAllow, setAuthAllow] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isDetail, setIsDetail] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const skipSyncRef = useRef(false);
 
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -31,125 +37,190 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
-
       try {
+        if (skipSyncRef.current) {
+          skipSyncRef.current = false;
+          setAuthLoading(false);
+          return;
+        }
+
         if (!user) {
           setCurrentUser(null);
           setAuthAllow(false);
-          setIsDetail(false);
+          setAuthLoading(false);
           return;
         }
 
-        const collectionsToCheck = ["Users", "Managers", "Admins"];
+        const indexRef = doc(db, "UserIndex", user.uid);
+        const indexSnap = await getDoc(indexRef);
 
-        let foundUser = null;
-        let docId = null;
-        let roleCollection = null;
-
-        for (const col of collectionsToCheck) {
-          const q = query(collection(db, col), where("authId", "==", user.uid));
-
-          const querySnapshot = await getDocs(q);
-
-          if (!querySnapshot.empty) {
-            const docSnap = querySnapshot.docs[0];
-
-            foundUser = docSnap.data();
-            docId = docSnap.id;
-            roleCollection = col;
-
-            break;
-          }
-        }
-
-        if (!foundUser) {
+        if (!indexSnap.exists()) {
           setCurrentUser(null);
           setAuthAllow(false);
+          setAuthLoading(false);
           return;
         }
 
-        if (foundUser.status !== "active") {
-          await signOut(auth);
+        const { collection: col, docId } = indexSnap.data();
 
+        const userSnap = await getDoc(doc(db, col, docId));
+
+        if (!userSnap.exists()) {
+          setCurrentUser(null);
+          setAuthAllow(false);
+          setAuthLoading(false);
+          return;
+        }
+
+        const data = userSnap.data();
+
+        if (data.status !== "active") {
+          await signOut(auth);
           toast.error(
-            foundUser.status === "pending"
-              ? "Your account is pending approval"
-              : "Your account has been banned",
+            data.status === "pending"
+              ? "Account pending approval"
+              : "Account banned",
           );
 
           setCurrentUser(null);
           setAuthAllow(false);
+          setAuthLoading(false);
           return;
         }
 
-        const finalUser = {
-          ...foundUser,
+        setCurrentUser({
+          ...data,
           docId,
-          roleCollection,
-        };
+          roleCollection: col,
+        });
 
-        setCurrentUser(finalUser);
         setAuthAllow(true);
       } catch (err) {
         console.error("Auth error:", err);
-
         setCurrentUser(null);
         setAuthAllow(false);
       } finally {
-        setLoading(false);
+        setAuthLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
+  const signUp = async ({ name, email, password }) => {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+
+    const authUser = res.user;
+    const userId = await generateCustomId("Users");
+
+    const userData = {
+      authId: authUser.uid,
+      userId,
+      fullName: name,
+      searchText: [
+        ...generateSearchTokens(name),
+        ...generateSearchTokens(email),
+      ],
+      email,
+      role: "user",
+      profileImage: "",
+      status: "active",
+      createdAt: serverTimestamp(),
+      isOnline: true,
+      lastSeen: serverTimestamp(),
+      lastActive: serverTimestamp(),
+    };
+
+    await setDoc(doc(db, "Users", userId), userData);
+
+    await setDoc(doc(db, "UserIndex", authUser.uid), {
+      role: "user",
+      collection: "Users",
+      docId: userId,
+    });
+    skipSyncRef.current = true;
+
+    const finalUser = {
+      ...userData,
+      docId: userId,
+      roleCollection: "Users",
+    };
+
+    setCurrentUser(finalUser);
+    setAuthAllow(true);
+
+    return finalUser;
+  };
+
+  const signIn = async ({ email, password }) => {
+    const res = await signInWithEmailAndPassword(auth, email, password);
+
+    const user = res.user;
+
+    const indexSnap = await getDoc(doc(db, "UserIndex", user.uid));
+
+    if (!indexSnap.exists()) throw new Error("User not found");
+
+    const { collection: col, docId } = indexSnap.data();
+
+    const userSnap = await getDoc(doc(db, col, docId));
+
+    if (!userSnap.exists()) throw new Error("User not found");
+
+    const data = userSnap.data();
+
+    skipSyncRef.current = true;
+
+    const finalUser = {
+      ...data,
+      docId,
+      roleCollection: col,
+    };
+
+    setCurrentUser(finalUser);
+    setAuthAllow(true);
+
+    return finalUser;
+  };
+
   const refresh = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const collectionsToCheck = ["Users", "Managers", "Admins"];
+    const indexSnap = await getDoc(doc(db, "UserIndex", user.uid));
+    if (!indexSnap.exists()) return;
 
-    for (const col of collectionsToCheck) {
-      const q = query(collection(db, col), where("authId", "==", user.uid));
+    const { collection: col, docId } = indexSnap.data();
 
-      const querySnapshot = await getDocs(q);
+    const userSnap = await getDoc(doc(db, col, docId));
 
-      if (!querySnapshot.empty) {
-        const docSnap = querySnapshot.docs[0];
-
-        setCurrentUser({
-          ...docSnap.data(),
-          docId: docSnap.id,
-          roleCollection: col,
-        });
-
-        return;
-      }
+    if (userSnap.exists()) {
+      setCurrentUser({
+        ...userSnap.data(),
+        docId,
+        roleCollection: col,
+      });
     }
   };
 
-  const logout = async (redirect = true) => {
+  const logout = async () => {
     await signOut(auth);
     setCurrentUser(null);
     setAuthAllow(false);
-    setIsDetail(false);
-
-    if (redirect) navigate("/auth");
+    navigate("/auth");
   };
 
   return (
     <AuthCtx.Provider
       value={{
         currentUser,
-        setCurrentUser,
         authAllow,
-        loading,
-        refresh,
-        isDetail,
-        setIsDetail,
-        logout,
+        authLoading,
         isOnline,
+        signUp,
+        signIn,
+        logout,
+        refresh,
       }}
     >
       {children}

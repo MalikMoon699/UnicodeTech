@@ -1,12 +1,16 @@
+import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
-import { useEffect } from "react";
 
 export const ProtectedRoute = ({ children, role = [] }) => {
-  const navigate = useNavigate();
-  const { authAllow, currentUser, loading } = useAuth();
-  if (loading)
+  const { authAllow, currentUser, authLoading } = useAuth();
+  console.log("for ProtectedRoute---->", {
+    authLoading: authLoading,
+    authAllow: authAllow,
+    currentUser: currentUser,
+  });
+  if (authLoading) {
     return (
       <Loader
         loading={true}
@@ -14,6 +18,7 @@ export const ProtectedRoute = ({ children, role = [] }) => {
         style={{ height: "85vh", width: "100%" }}
       />
     );
+  }
 
   if (!authAllow) return <Navigate to="/auth" replace />;
 
@@ -36,22 +41,14 @@ export const ProtectedRoute = ({ children, role = [] }) => {
 };
 
 export const PublicRoute = ({ children }) => {
-  const { authAllow, currentUser, loading } = useAuth();
-  const navigate = useNavigate();
+  const { authAllow, currentUser, authLoading } = useAuth();
+  console.log("for PublicRoute---->", {
+    authLoading: authLoading,
+    authAllow: authAllow,
+    currentUser: currentUser,
+  });
 
-useEffect(() => {
-  if (authAllow && currentUser) {
-    if (currentUser.role === "admin") {
-      navigate("/admin/dashboard");
-    } else if (currentUser.role === "manager") {
-      navigate("/manager/dashboard");
-    } else {
-      navigate("/dashboard");
-    }
-  }
-}, [authAllow, currentUser, navigate]);
-
-  if (loading) {
+  if (authLoading) {
     return (
       <Loader
         loading={true}
@@ -61,7 +58,15 @@ useEffect(() => {
     );
   }
 
-  if (authAllow) return null;
+  if (authAllow && currentUser) {
+    if (currentUser.role === "admin") {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (currentUser.role === "manager") {
+      return <Navigate to="/manager/dashboard" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
 
   return children;
 };

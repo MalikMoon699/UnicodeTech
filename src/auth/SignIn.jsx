@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
 import { Input } from "../components/CustomComponents";
-import { signInHelper } from "../services/auth.services";
+import { useAuth } from "../context/AuthContext";
 
 const SignIn = ({ setFormType }) => {
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,24 +34,17 @@ const SignIn = ({ setFormType }) => {
     if (!validations()) return;
     setLoading(true);
     try {
-      await signInHelper({ email, password });
-      toast.success("SignIn successfully!");
+      await signIn({ email, password });
+      toast.success("Login successful!");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
-      console.error("SignIn failed:", err);
-      if (err.code === "auth/user-not-found") {
-        toast.error("User not found");
-      } else if (err.code === "auth/wrong-password") {
-        toast.error("Incorrect password");
-      } else if (err.code === "auth/invalid-email") {
-        toast.error("Invalid email");
-      } else {
-        toast.error("Login failed");
-      }
+      console.error(err);
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="signin-left">
       <div className="signin-left-inner">

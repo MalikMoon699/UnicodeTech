@@ -69,12 +69,11 @@
 
 .sidebar-close-btn {
   font-size: 0px;
-  border: 1px solid var(--primary);
+  border: none;
   color: var(--primary);
-  background: var(--primary-hover);
+  background: transparent;
   border-radius: 6px;
   cursor: pointer;
-  padding: 3px;
 }
 
 .sidebar-close-btn > span {

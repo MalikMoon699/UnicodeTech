@@ -41,3 +41,14 @@ export const handleUploadImage = async (avatarFile) => {
     console.error("Failed to Upload Image:", err);
   }
 };
+
+export const generateSearchTokens = (text) => {
+  const clean = text.toLowerCase().replace(/\s+/g, "");
+  const tokens = [];
+
+  for (let i = 1; i <= clean.length; i++) {
+    tokens.push(clean.slice(0, i));
+  }
+
+  return tokens;
+};

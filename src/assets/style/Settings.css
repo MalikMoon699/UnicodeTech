@@ -123,8 +123,8 @@
 }
 
 .settings-primary-button:hover {
-  background-color: var(--status-approved);
-  box-shadow: 0px 0px 8px var(--primary);
+  background-color: var(--primary-hover);
+  box-shadow: 0px 0px 8px var(--shadow);
   transform: translateY(-1px);
 }
 

@@ -18,20 +18,6 @@ export const IMAGES = {
   auth3,
 };
 
-/*
-  {
-    name: "Analytics",
-    icon: "ChartColumnDecreasing",
-    route: "/analytics",
-    activeAt: "/analytics",
-    startsWith: [
-      "/customer-analytics",
-      "/contractor-analytics",
-      "/onboarding-analytics",
-    ],
-  },
-*/ 
-
 export const AdminSidebarMenu = [
   {
     name: "Dashboard",
@@ -154,3 +140,5 @@ export const UserSidebarMenu = [
     activeAt: "/settings",
   },
 ];
+
+export const limit = 1;

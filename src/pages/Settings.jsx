@@ -21,39 +21,43 @@ const Setting = () => {
 
   useEffect(() => {
     if (currentUser) {
-      setName(currentUser?.name);
+      setName(currentUser?.fullName);
     }
   }, [currentUser]);
 
   const handleProfileUpdate = async () => {
     try {
       setLoadingType("UpdateProfile");
-      let profileImgUrl = currentUser?.profilImg || "";
+
+      let profileImgUrl = currentUser?.profileImage || "";
+
       if (avatarFile) {
         profileImgUrl = await handleUploadImage(avatarFile);
       }
-      const isNameChanged = name !== currentUser?.name;
-      const isImageChanged = profileImgUrl !== currentUser?.profilImg;
-      if (!isNameChanged && !isImageChanged) {
-        console.log("Nothing changed, skipping API call");
+
+      const isNameChanged = name !== currentUser?.fullName;
+      const isImageChanged = profileImgUrl !== currentUser?.profileImage;
+
+      if (!isNameChanged && !isImageChanged && !isEmailChanged) {
+        toast.info("No changes detected");
         return;
       }
-      const payload = {
-        name,
-        profilImg: profileImgUrl,
-      };
 
-      const res = await UpdateProfileHelper(currentUser?._id, payload);
-      toast.success("Profile Updated Successfuly.");
-      return res;
+      await UpdateProfileHelper({
+        currentUser,
+        updatedName: name,
+        email: currentUser?.email,
+        updatedProfileImage: profileImgUrl,
+      });
+
+      toast.success("Profile updated successfully");
     } catch (err) {
-      console.error("Failed to Update Profile:", err);
-      toast.error("Failed to Updated profile");
+      console.error(err);
+      toast.error("Failed to update profile");
     } finally {
       setLoadingType("");
     }
   };
-
 
   return (
     <>
@@ -115,11 +119,11 @@ const Setting = () => {
             label="Email"
             value={currentUser?.email || "N/A"}
             readOnly={true}
+            onClick={() => toast.error("Email not change able.")}
             placeholder="john@example.com"
             type="inputIcon"
             Icon={Mail}
             InputType="email"
-            onClick={() => toast.info("Not allow to change email.")}
           />
           <button
             disabled={loadingType !== ""}

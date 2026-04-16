@@ -28,8 +28,14 @@ import UserAttendance from "./pages/user/Attendance.jsx";
 import UserLeaves from "./pages/user/Leaves.jsx";
 import UserDayEndStatus from "./pages/user/DayEndStatus.jsx";
 import UserChats from "./pages/user/Chats.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
+import { usePresence } from "./utils/hooks/usePresence.js";
 
 const App = () => {
+const {currentUser}=useAuth();
+
+ usePresence(currentUser);
+
   return (
     <Routes>
       <Route
