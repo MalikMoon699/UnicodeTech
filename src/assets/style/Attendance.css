@@ -5,7 +5,6 @@
   background: var(--card);
   padding: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0px 0px 8px var(--shadow);
   border-radius: 10px;
   margin-top: 40px;
   width: 100%;
@@ -79,9 +78,9 @@
 .attendance-calendar {
   background: var(--card);
   border: 1px solid var(--border);
-  box-shadow: 0px 0px 8px var(--shadow);
   border-radius: 10px;
   margin-top: 23px;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -100,6 +99,7 @@
   font-size: 0px;
   border: none;
   background: var(--border);
+  color: var(--card-foreground);
   padding: 6px;
   border-radius: 50%;
   cursor: pointer;
@@ -236,7 +236,6 @@
   }
 }
 
-
 .attendance-day {
   padding: 12px;
   text-align: center;
@@ -303,8 +302,9 @@
 
 .tooltip-content {
   max-height: 150px;
+  width: 100%;
   padding-bottom: 8px;
-  overflow-y: auto;
+  overflow: hidden auto;
   position: relative;
   /* -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 70%, transparent 100%); */
@@ -373,4 +373,98 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+}
+
+/* ============== Admin Extra Style ============== */
+.admin-attendance-main {
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  gap: 15px;
+}
+
+.admin-attendance-users-panel {
+  width: 350px;
+  height: -webkit-fill-available;
+  background: var(--card);
+  border-radius: 10px;
+  margin-top: 23px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.attendance-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.attendance-user-item {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--background);
+  display: flex;
+  justify-content: start;
+}
+
+.attendance-user-item-profile {
+  width: 50px;
+  height: 50px;
+}
+
+.attendance-user-item-content {
+  display: flex;
+  flex-direction: column;
+  margin-left: 7px;
+  align-items: start;
+  justify-content: center;
+}
+.attendance-user-item-content > strong,
+.attendance-user-item-content > p {
+  width: 225px;
+}
+
+.attendance-user-item.active {
+  background: var(--gradian-background);
+}
+
+.attendance-badge {
+  background: var(--primary);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 20px;
+  font-size: 12px;
+  height: fit-content;
+  width: fit-content;
+}
+
+.attendance-selection {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 23px;
+  width: 100%;
+  overflow: hidden;
+  height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.attendance-selection > h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--card-foreground);
+}
+
+.attendance-selection > p {
+  font-size: 14px;
+  font-weight: 200;
+  color: var(--muted-foreground);
 }

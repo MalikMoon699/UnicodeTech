@@ -3,16 +3,20 @@ import {
   collection,
   query,
   where,
-  getDocs,
   doc,
   setDoc,
   updateDoc,
   getDoc,
   serverTimestamp,
+  orderBy,
+  limit as fblimit,
+  onSnapshot,
 } from "firebase/firestore";
 
+
 export const checkIn = async ({ userId, lateReason = "" }) => {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
 
   const ref = doc(db, "Attendance", `${userId}_${today}`);
   const snap = await getDoc(ref);
@@ -21,77 +25,93 @@ export const checkIn = async ({ userId, lateReason = "" }) => {
     throw new Error("Already checked in");
   }
 
-  const isLate = new Date().getHours() >= 12;
+  const isLate = now.getHours() >= 12;
 
   await setDoc(ref, {
     userId,
     date: today,
-    checkIn: new Date().toLocaleTimeString(),
+    checkIn: now.toISOString(),
     checkOut: null,
     hours: null,
-    status: isLate ? "late" : "present",
     late: isLate,
     lateReason: isLate ? lateReason : "",
+    type: "present",
+    status: isLate ? "late" : "present",
+    seenBy: {
+      checkIn: [],
+      checkOut: [],
+    },
     createdAt: serverTimestamp(),
   });
 };
 
-export const checkOut = async (userId) => {
-  const today = new Date().toISOString().split("T")[0];
+export const checkOut = async (userId, date) => {
+  if (!userId || !date) {
+    throw new Error("Invalid checkout request");
+  }
 
-  const ref = doc(db, "Attendance", `${userId}_${today}`);
+  const ref = doc(db, "Attendance", `${userId}_${date}`);
   const snap = await getDoc(ref);
 
-  if (!snap.exists() || !snap.data().checkIn) {
+  if (!snap.exists()) {
+    throw new Error("Attendance record not found");
+  }
+
+  const data = snap.data();
+
+  if (!data.checkIn) {
     throw new Error("Check-in required first");
   }
 
-  if (snap.data().checkOut) {
+  if (data.checkOut) {
     throw new Error("Already checked out");
   }
 
-  const checkInTime = new Date(`${today} ${snap.data().checkIn}`);
+  const checkInTime = new Date(data.checkIn);
   const now = new Date();
 
   const diff = Math.floor((now - checkInTime) / 1000 / 60);
   const hours = `${Math.floor(diff / 60)}h ${diff % 60}m`;
 
   await updateDoc(ref, {
-    checkOut: now.toLocaleTimeString(),
+    checkOut: now.toISOString(),
     hours,
+    "seenBy.checkOut": [],
   });
 };
 
-// export const getMonthlyAttendance = async ({ userId, date }) => {
-//   if (!userId || !date) return;
-//   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-//   const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+export const subscribeLastPendingCheckout = (userId, callback) => {
+  if (!userId) return;
 
-//   const q = query(
-//     collection(db, "Attendance"),
-//     where("userId", "==", userId),
-//     where("date", ">=", start.toISOString().split("T")[0]),
-//     where("date", "<=", end.toISOString().split("T")[0]),
-//   );
+  const q = query(
+    collection(db, "Attendance"),
+    where("userId", "==", userId),
+    orderBy("date", "desc"),
+    fblimit(10),
+  );
 
-//   const snap = await getDocs(q);
+  const unsubscribe = onSnapshot(q, (snap) => {
+    let pending = null;
 
-//   const map = {};
+    for (let docSnap of snap.docs) {
+      const data = docSnap.data();
 
-//   snap.docs.forEach((doc) => {
-//     const data = doc.data();
+      if (!data || data.type === "leave" || !data.checkIn) continue;
 
-//     map[data.date] = {
-//       type: data.type || "present",
-//       late: data.late || false,
-//     };
-//   });
+      if (!data.checkOut) {
+        pending = data;
+        break;
+      }
+    }
 
-//   return map;
-// };
+    callback(pending);
+  });
 
-export const getMonthlyAttendance = async ({ userId, date }) => {
-  if (!userId || !date) return {};
+  return unsubscribe;
+};
+
+export const subscribeMonthlyAttendance = ({ userId, date, callback }) => {
+  if (!userId || !date) return;
 
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
   const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -103,99 +123,27 @@ export const getMonthlyAttendance = async ({ userId, date }) => {
     where("date", "<=", end.toISOString().split("T")[0]),
   );
 
-  const snap = await getDocs(q);
+  const unsubscribe = onSnapshot(q, (snap) => {
+    const map = {};
 
-  const map = {};
+    snap.docs.forEach((doc) => {
+      const data = doc.data();
 
-  snap.docs.forEach((doc) => {
-    const data = doc.data();
+      map[data.date] = {
+        userId: data.userId,
+        date: data.date,
+        checkIn: data.checkIn,
+        checkOut: data.checkOut,
+        hours: data.hours ?? null,
+        late: data.late ?? false,
+        lateReason: data.lateReason ?? "",
+        type: data.type || "present",
+        status: data.status || "absent",
+      };
+    });
 
-    const dateObj = new Date(data.date);
-
-    map[data.date] = {
-      userId: data.userId || userId,
-      date: data.date,
-
-      createdAt: data.createdAt || null,
-
-      hours: data.hours ?? null,
-      checkIn: data.checkIn ?? null,
-      checkOut: data.checkOut ?? null,
-
-      late: data.late ?? false,
-      lateReason: data.lateReason ?? "",
-
-      type: data.type || "present",
-      status: data.status || "absent",
-    };
+    callback(map);
   });
 
-  return map;
-};
-
-
-export const getDummyAttendance = (inputDate) => {
-  const date = new Date(inputDate);
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const map = {};
-  const totalDays = new Date(year, month + 1, 0).getDate();
-
-  for (let d = 1; d <= totalDays; d++) {
-    const dateObj = new Date(year, month, d);
-    const key = dateObj.toISOString().split("T")[0];
-
-    const base = {
-      userId: "y0cABjV4M9",
-      date: key,
-      createdAt: new Date(dateObj.setHours(9, 0, 0)),
-      hours: null,
-      checkIn: null,
-      checkOut: null,
-      late: false,
-      lateReason: "",
-      type: "present",
-      status: "absent",
-    };
-
-    if (d % 7 === 0) {
-      map[key] = {
-        ...base,
-        type: "leave",
-        status: "leave",
-      };
-      continue;
-    }
-
-    if (d % 5 === 0) {
-      map[key] = {
-        ...base,
-        checkIn: "11:45:00",
-        checkOut: "19:00:00",
-        late: true,
-        lateReason: "Delayed due to unexpected traffic",
-        hours: 7.25,
-        status: "late",
-      };
-      continue;
-    }
-
-    if (d % 2 === 0) {
-      map[key] = {
-        ...base,
-        checkIn: "09:05:00",
-        checkOut: "17:30:00",
-        hours: 8.25,
-        status: "present",
-      };
-      continue;
-    }
-
-    map[key] = {
-      ...base,
-      status: "absent",
-    };
-  }
-
-  return map;
+  return unsubscribe;
 };

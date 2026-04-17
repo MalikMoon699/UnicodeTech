@@ -109,6 +109,7 @@ body {
 
 .page-container {
   width: 100%;
+  max-width: 1400px;
   min-height: 85vh;
   padding: 1.5rem;
 }

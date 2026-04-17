@@ -19,26 +19,32 @@ export const getUsersHelper = async ({
   limit: pageLimit = 10,
   search = "",
   status = "",
-  collection: colName = "Users",
+  role = "",
   lastDoc = null,
 }) => {
   try {
-    const baseRef = collection(db, colName);
+    const baseRef = collection(db, "UserIndex");
     const searchValue = search.toLowerCase().replace(/\s+/g, "");
 
     let constraints = [];
+
+    constraints.push(where("role", "!=", "admin"));
 
     if (status) {
       constraints.push(where("status", "==", status));
     }
 
+    if (role) {
+      constraints.push(where("role", "==", role));
+    }
+
     if (searchValue) {
       constraints.push(where("searchText", "array-contains", searchValue));
-      constraints.push(orderBy("createdAt", "desc"));
-    } else {
-      constraints.push(orderBy("createdAt", "desc"));
     }
-    
+
+    constraints.push(orderBy("role"));
+    constraints.push(orderBy("createdAt", "desc"));
+
     if (lastDoc) {
       constraints.push(startAfter(lastDoc));
     }
@@ -48,10 +54,21 @@ export const getUsersHelper = async ({
     const q = query(baseRef, ...constraints);
     const snap = await getDocs(q);
 
-    const users = snap.docs.map((doc) => ({
-      _id: doc.id,
-      ...doc.data(),
-    }));
+    const users = await Promise.all(
+      snap.docs.map(async (docSnap) => {
+        const indexData = docSnap.data();
+
+        const userRef = doc(db, indexData.collection, indexData.docId);
+
+        const userSnap = await getDoc(userRef);
+
+        return {
+          _id: indexData.docId,
+          ...indexData,
+          ...(userSnap.exists() ? userSnap.data() : {}),
+        };
+      }),
+    );
 
     const lastVisible =
       snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
@@ -71,13 +88,21 @@ export const getUsersHelper = async ({
 
 export const updateUserStatus = async ({ user, status }) => {
   try {
-    const collection = user?.role === "user" ? "Users" : "Managers";
-    const ref = doc(db, collection, user?.userId);
+    const collectionName = user?.role === "user" ? "Users" : "Managers";
 
-    await updateDoc(ref, {
-      status,
-      updatedAt: serverTimestamp(),
-    });
+    const userRef = doc(db, collectionName, user?.userId);
+    const indexRef = doc(db, "UserIndex", user?.authId);
+
+    await Promise.all([
+      updateDoc(userRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      }),
+      updateDoc(indexRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      }),
+    ]);
 
     return true;
   } catch (err) {
@@ -136,6 +161,9 @@ export const updateUserRole = async ({ authId, newRole }) => {
       role: newRole,
       collection: newCollection,
       docId: currentDocId,
+      createdAt: userData?.createdAt,
+      status: userData?.status,
+      searchText: userData?.searchText,
     });
     return true;
   } catch (err) {

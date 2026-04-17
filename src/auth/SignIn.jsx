@@ -39,7 +39,7 @@ const SignIn = ({ setFormType }) => {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Login failed");
+      if (err.message !== "No show") toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }

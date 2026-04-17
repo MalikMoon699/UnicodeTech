@@ -141,4 +141,4 @@ export const UserSidebarMenu = [
   },
 ];
 
-export const limit = 1;
+export const limit = 2;

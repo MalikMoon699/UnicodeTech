@@ -169,6 +169,12 @@ export const AuthProvider = ({ children }) => {
       role: "user",
       collection: "Users",
       docId: userId,
+      status: "pending",
+      searchText: [
+        ...generateSearchTokens(name),
+        ...generateSearchTokens(email),
+      ],
+      createdAt: serverTimestamp(),
     });
     skipSyncRef.current = true;
 
@@ -205,10 +211,10 @@ export const AuthProvider = ({ children }) => {
       await signOut(auth);
 
       if (data.status === "pending") {
-        throw new Error("Account pending approval");
+        throw new Error("No show");
       }
 
-      throw new Error("Account banned");
+      throw new Error("No show");
     }
 
     skipSyncRef.current = true;

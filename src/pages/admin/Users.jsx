@@ -26,7 +26,7 @@ const Users = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [roleFilter, setRoleFilter] = useState("Users");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
@@ -53,7 +53,7 @@ const Users = () => {
         limit,
         search: debounceSearch,
         status: status !== "all" ? status : "",
-        collection: roleFilter,
+        role: roleFilter !== "all" ? roleFilter : "",
         lastDoc: reset ? null : lastDoc,
       });
 
@@ -81,15 +81,29 @@ const Users = () => {
     fetchUsers(false);
   };
 
+
   const handleStatusChange = async (user, newStatus) => {
     try {
       setStatusLoading({ status: newStatus, id: user.authId });
+
       await updateUserStatus({ user, status: newStatus });
 
       setUsers((prev) =>
-        prev.map((u) =>
-          u.authId === user.authId ? { ...u, status: newStatus } : u,
-        ),
+        prev
+          .map((u) =>
+            u.authId === user.authId ? { ...u, status: newStatus } : u,
+          )
+          .filter((u) => {
+            if (roleFilter !== "all" && u.role !== roleFilter) {
+              return false;
+            }
+
+            if (status !== "all" && u.status !== status) {
+              return false;
+            }
+
+            return true;
+          }),
       );
 
       toast.success("Status updated");
@@ -99,6 +113,7 @@ const Users = () => {
       setStatusLoading(null);
     }
   };
+
 
   const handleRoleChange = async (userId, currentRole) => {
     try {
@@ -111,7 +126,21 @@ const Users = () => {
         newRole,
       });
 
-      setUsers((prev) => prev.filter((u) => u.authId !== userId));
+      setUsers((prev) =>
+        prev
+          .map((u) => (u.authId === userId ? { ...u, role: newRole } : u))
+          .filter((u) => {
+            if (roleFilter !== "all" && u.role !== roleFilter) {
+              return false;
+            }
+
+            if (status !== "all" && u.status !== status) {
+              return false;
+            }
+
+            return true;
+          }),
+      );
 
       toast.success(`Role changed to ${newRole}`);
     } catch (err) {
@@ -142,6 +171,7 @@ const Users = () => {
           style={{
             padding: "4px 10px",
             borderRadius: 6,
+            textTransform:"capitalize",
             fontSize: 12,
             background:
               row.status === "active"
@@ -307,8 +337,9 @@ const Users = () => {
             filter={roleFilter}
             setFilter={setRoleFilter}
             options={[
-              { filter: "Users", label: "Users" },
-              { filter: "Managers", label: "Managers" },
+              { filter: "all", label: "All" },
+              { filter: "user", label: "Users" },
+              { filter: "manager", label: "Managers" },
             ]}
           />
         </div>
