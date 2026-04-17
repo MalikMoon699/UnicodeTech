@@ -1,4 +1,3 @@
-// admin attendance services
 import {
   collection,
   query,
