@@ -1,11 +1,16 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import "../assets/style/Attendance.css";
 import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  MoveLeft,
+  MoveRight,
+  X,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import Loader from "../components/Loader";
 
 
 export const AttenDanceCalender = ({
@@ -295,5 +300,301 @@ export const CalendarSkeleton = () => {
         <div key={i} className="attendance-day-skeleton" />
       ))}
     </>
+  );
+};
+
+export const LeaveRequestModal = ({ onClose, editData }) => {
+  const { currentUser } = useAuth();
+  const [requestType, setRequestType] = useState("halfDay");
+  const [selectedMonth,setSelectedMonth]=("");
+  const [duration, setDuration] = useState([{date: new Date()}]);
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
+
+  // Prefill when editing
+  useEffect(() => {
+    if (editData) {
+      setRequestType(editData.type || "halfDay");
+      setReason(editData.reason || "");
+      if (editData.type === "halfDay") {
+        setStartDate(editData.date?.toDate?.() || new Date());
+        setSelectedDate(editData.date?.toDate?.() || new Date());
+        setStartTime(editData.startTime ? convertTo24(editData.startTime) : "");
+        setEndTime(editData.endTime ? convertTo24(editData.endTime) : "");
+      } else if (editData.type === "fullDay") {
+        setStartDate(editData.date?.toDate?.() || new Date());
+        setSelectedDate(editData.date?.toDate?.() || new Date());
+      } else if (editData.type === "longLeave") {
+        setStartDate(editData.startDate?.toDate?.() || new Date());
+        setEndDate(editData.endDate?.toDate?.() || null);
+      }
+    }
+  }, [editData]);
+
+  const convertTo24 = (time12) => {
+    if (!time12) return "";
+    const [time, modifier] = time12.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  };
+
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const calendarDays = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startingDayOfWeek = firstDayOfMonth.getDay();
+
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const daysInMonth = lastDayOfMonth.getDate();
+
+    const daysArray = [];
+
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      daysArray.push(null);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      daysArray.push(new Date(year, month, i));
+    }
+
+    return daysArray;
+  }, [currentMonth]);
+
+
+
+  return (
+    <div className="modal-overlay">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-content"
+        style={{ padding: "25px 30px", width: "580px" }}
+      >
+        <div
+          style={{
+            width: "520px",
+            position: "sticky",
+            top: "-26px",
+            left: "0px",
+            padding: "18px 0px 15px 0px",
+            background: "white",
+          }}
+          className="leave-modal-header-container"
+        >
+          <h2 className="leave-modal-title">
+            {isEditMode ? "Edit Request" : "Add Request"}
+          </h2>
+          <button
+            disabled={loading}
+            onClick={onClose}
+            className="close-modal-btn"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="input-modal-container">
+          <label className="input-modal-label">Request Type</label>
+          <select
+            className="request-modal-select"
+            value={requestType}
+            onChange={handleRequestTypeChange}
+          >
+            <option value="halfDay">Half Day</option>
+            <option value="fullDay">Full Day</option>
+            <option value="longLeave">Long Leave</option>
+          </select>
+        </div>
+
+        {requestType === "halfDay" && (
+          <div className="tab-modal-container">
+            <button
+              className={`tab-modal-btn ${
+                activeTab === "days" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("days")}
+            >
+              Days
+            </button>
+            <button
+              className={`tab-modal-btn ${
+                activeTab === "hours" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("hours")}
+            >
+              Hours
+            </button>
+          </div>
+        )}
+
+        {activeTab === "days" && (
+          <div
+            className="calendar-modal-container"
+            style={{
+              border: errors.startDate || errors.endDate ? "1px solid red" : "",
+              marginTop: requestType === "halfDay" ? "20px" : "40px",
+            }}
+          >
+            <div className="calendar-modal-header">
+              <span onClick={goToPrevMonth} style={{ cursor: "pointer" }}>
+                <MoveLeft />
+              </span>
+              <h3>
+                {currentMonth.toLocaleString("default", { month: "long" })},{" "}
+                {currentMonth.getFullYear()}
+              </h3>
+              <span onClick={goToNextMonth} style={{ cursor: "pointer" }}>
+                <MoveRight />
+              </span>
+            </div>
+
+            {/* Weekdays */}
+            <div className="calendar-modal-days">
+              {days.map((d, idx) => {
+                const active =
+                  requestType === "longLeave"
+                    ? calendarDays.some(
+                        (date) =>
+                          date && isInRange(date) && date.getDay() === idx,
+                      )
+                    : selectedDate && selectedDate.getDay() === idx;
+
+                return (
+                  <span
+                    key={d}
+                    className={`day-modal-name ${active ? "active" : ""}`}
+                  >
+                    {d}
+                  </span>
+                );
+              })}
+            </div>
+
+            <div className="calendar-modal-grid">
+              {calendarDays.map((date, i) =>
+                date ? (
+                  <button
+                    key={i}
+                    className="calendar-modal-date"
+                    onClick={() => handleDateClick(date)}
+                  >
+                    <span
+                      className={
+                        requestType === "longLeave"
+                          ? isInRange(date)
+                            ? "selected"
+                            : startDate &&
+                                !endDate &&
+                                startDate.toDateString() === date.toDateString()
+                              ? "selected"
+                              : ""
+                          : selectedDate &&
+                              selectedDate.toDateString() ===
+                                date.toDateString()
+                            ? "selected"
+                            : ""
+                      }
+                    >
+                      {date.getDate()}
+                    </span>
+                  </button>
+                ) : (
+                  <span key={i} className="calendar-empty-slot" />
+                ),
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "hours" && (
+          <div className="time-modal-container">
+            <div className="modal-time-input-container">
+              <div className="modal-time-input-wrapper">
+                <span className="modal-time-label">From</span>
+                <input
+                  type="time"
+                  value={startTime}
+                  min={
+                    selectedDate &&
+                    selectedDate.toDateString() === new Date().toDateString()
+                      ? new Date().toISOString().slice(11, 16)
+                      : "00:00"
+                  }
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="modal-time-input"
+                  style={{
+                    border: errors.startTime ? "1px solid red" : "",
+                  }}
+                />
+              </div>
+              <div className="modal-time-input-wrapper">
+                <span className="modal-time-label">To</span>
+                <input
+                  type="time"
+                  value={endTime}
+                  min={startTime || "00:00"}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="modal-time-input"
+                  style={{
+                    border: errors.endTime ? "1px solid red" : "",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-selected-time-section">
+              <span className="modal-time-label">Selected Time</span>
+              <div className="modal-selected-time-box">
+                <p className="modal-leave-description">Time for Leave</p>
+                <h2 className="modal-leave-duration">
+                  {timeDifference || "0h 0m"}
+                </h2>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="input-modal-container">
+          <label className="modal-time-label">Reason</label>
+          <textarea
+            placeholder="Leave reason..."
+            className="request-modal-textarea"
+            value={reason}
+            style={{
+              border: errors.reason ? "2px solid red" : "",
+            }}
+            onChange={(e) => {
+              setReason(e.target.value);
+            }}
+          />
+        </div>
+        <div className="submit-modal-container">
+          <button
+            onClick={handleSendRequest}
+            className="add-leave-modal-request-button"
+            style={{ cursor: loading ? "not-allowed" : "pointer" }}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader
+                loading={true}
+                style={{ height: "23px", width: "100px" }}
+                color="white"
+                size="30"
+              />
+            ) : isEditMode ? (
+              "Update Request"
+            ) : (
+              "Send Request"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

@@ -72,22 +72,23 @@ const Attendance = () => {
   }, [selectedUser, selectedDate, userId, tab]);
 
   return (
-    <>
-      <Tabs
-        tab={tab}
-        setTab={setTab}
-        options={[
+    <div className="page-container">
+      <Header
+        title="Attendance"
+        desc="Track your daily attendance"
+        isTab={true}
+        tabState={tab}
+        setTabState={setTab}
+        tabOptions={[
           { label: "My", value: "my", icon: Users },
           { label: "Users", value: "users", icon: Users },
         ]}
-        outerWidth="100%"
-        innerWidth="fit-content"
+        tabOuterWidth="fit-content"
       />
       {tab === "my" ? (
-        <MyAttendance />
+        <MyAttendance isManager={true} />
       ) : (
         <div className="page-container">
-          <Header title="Attendance" desc="Track your daily attendance" />
           <div
             style={{ margin: "30px 0px" }}
             className="custom-dashboard-stats-container"
@@ -182,7 +183,7 @@ const Attendance = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

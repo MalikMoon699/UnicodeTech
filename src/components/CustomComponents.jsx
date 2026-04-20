@@ -603,11 +603,33 @@ export const StatesCard = ({
   );
 };
 
-export const Header = ({ title = "", desc = "" }) => {
+export const Header = ({
+  title = "",
+  desc = "",
+  isTab = false,
+  tabDisabled = false,
+  tabState,
+  setTabState,
+  tabOptions,
+  tabOuterWidth = "100%",
+  tabInnerWidth = "fit-content",
+}) => {
   return (
     <div className="custom-header-container">
+      <div className="custom-header-content">
       <h1 className="custom-header-title">{title}</h1>
       <p className="custom-header-desc">{desc}</p>
+      </div>
+      {isTab && (
+        <Tabs
+          disabled={tabDisabled}
+          tab={tabState}
+          setTab={setTabState}
+          options={tabOptions}
+          outerWidth={tabOuterWidth}
+          innerWidth={tabInnerWidth}
+        />
+      )}
     </div>
   );
 };

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
 import { AttenDanceCalender } from "../../components/Attendance.components";
 
-const Attendance = () => {
+const Attendance = ({isManager = false}) => {
   const { currentUser } = useAuth();
   const [todayRecord, setTodayRecord] = useState(null);
   const [isLate, setIsLate] = useState(false);
@@ -108,8 +108,10 @@ const Attendance = () => {
   };
 
   return (
-    <div className="page-container">
-      <Header title="Attendance" desc="Track your daily attendance" />
+    <div className={isManager ? "" : "page-container"}>
+      {!isManager && (
+        <Header title="Attendance" desc="Track your daily attendance" />
+      )}
       <div className="attendance-top-card">
         <div className="attendance-top-card-content">
           <h4>Today — {new Date().toDateString()}</h4>
