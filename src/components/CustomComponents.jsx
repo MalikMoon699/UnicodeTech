@@ -8,11 +8,9 @@ import {
   EyeClosed,
   Search,
   X,
-  Zap,
 } from "lucide-react";
 import { IMAGES } from "../utils/constants";
 import Loader from "./Loader";
-import { useAuth } from "../context/AuthContext";
 
 export const Input = ({
   label = "",
@@ -197,101 +195,6 @@ export const ImageViewModel = ({ Image = "", onClose }) => {
         </div>
       </div>
     </div>
-  );
-};
-
-export const TopBar = ({ title = "", updateCredits = null }) => {
-  const { currentUser } = useAuth();
-  const [isCreadit, setIsCreadit] = useState(false);
-  const [isAddMore, setIsAddMore] = useState(false);
-  const isPremium = currentUser?.accountType === "premiumUser";
-
-  const creadit =
-    updateCredits !== null ? updateCredits : currentUser?.credits || 0;
-
-  const colorSuggestion = () => {
-    if (creadit < 10) {
-      return "var(--status-rejected)";
-    } else if (creadit < 50) {
-      return "var(--status-pending)";
-    } else {
-      return "var(--primary)";
-    }
-  };
-
-  return (
-    <>
-      <div className="custom-topbar-container">
-        <div className="custom-topbar-inner-container">
-          <h2 className="custom-topbar-title">{title}</h2>
-          <h4
-            onClick={() => {
-              if (!isPremium) {
-                setIsCreadit(true);
-              }
-            }}
-            className="custom-topbar-credit"
-            style={{ color: isPremium ? "var(--primary)" : colorSuggestion() }}
-          >
-            <span className="icon">
-              <Zap size={16} />
-            </span>
-            {isPremium ? "Unlimited" : creadit} credits
-          </h4>
-        </div>
-      </div>
-      {isCreadit && (
-        <div className="model-overlay">
-          <div className="model-content">
-            <div className="model-header">
-              <h2 className="model-header-title">
-                {isAddMore ? "Add" : "Your"} Credits
-              </h2>
-              <button
-                className="model-header-close-btn"
-                onClick={() => {
-                  setIsAddMore(false);
-                  setIsCreadit(false);
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div className="model-content-container">
-              {isAddMore ? (
-                <PrincingCard />
-              ) : (
-                <>
-                  <h2 style={{ width: "100%", textAlign: "center" }}>
-                    Credit Information
-                  </h2>
-                  <p style={{ width: "100%", textAlign: "center" }}>
-                    You have{" "}
-                    <span style={{ color: colorSuggestion() }}>
-                      {creadit || 0}
-                    </span>{" "}
-                    credits available now for use.
-                  </p>
-                  <button
-                    onClick={() => setIsAddMore(true)}
-                    className="api-generate-btn"
-                    style={{
-                      width: "100%",
-                      justifyContent: "center",
-                      gap: "12px",
-                      padding: "11px 14px",
-                      marginTop: "20px",
-                    }}
-                  >
-                    Add More Credits
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   );
 };
 
@@ -606,6 +509,7 @@ export const StatesCard = ({
 export const Header = ({
   title = "",
   desc = "",
+  context = null,
   isTab = false,
   tabDisabled = false,
   tabState,
@@ -617,9 +521,10 @@ export const Header = ({
   return (
     <div className="custom-header-container">
       <div className="custom-header-content">
-      <h1 className="custom-header-title">{title}</h1>
-      <p className="custom-header-desc">{desc}</p>
+        <h1 className="custom-header-title">{title}</h1>
+        <p className="custom-header-desc">{desc}</p>
       </div>
+      {context}
       {isTab && (
         <Tabs
           disabled={tabDisabled}

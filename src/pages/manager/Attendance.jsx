@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../../assets/style/Attendance.css";
 import {
-  Tabs,
   Header,
   ProfileImage,
   StatesCard,

@@ -1,5 +1,5 @@
 // admin attendance
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Header,
   ProfileImage,
@@ -9,10 +9,6 @@ import "../../assets/style/Attendance.css";
 import { useAuth } from "../../context/AuthContext";
 import {
   AlarmClock,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
   UserCheck,
   UserMinus,
   Users,

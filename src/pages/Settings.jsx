@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  TopBar,
   Input,
   ProfileImage,
   Header,
@@ -23,7 +22,7 @@ const Setting = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const fileInputRef = useRef(null);
-
+  
   useEffect(() => {
     if (currentUser) {
       setName(currentUser?.fullName);
@@ -43,7 +42,7 @@ const Setting = () => {
       const isNameChanged = name !== currentUser?.fullName;
       const isImageChanged = profileImgUrl !== currentUser?.profileImage;
 
-      if (!isNameChanged && !isImageChanged && !isEmailChanged) {
+      if (!isNameChanged && !isImageChanged) {
         toast.info("No changes detected");
         return;
       }

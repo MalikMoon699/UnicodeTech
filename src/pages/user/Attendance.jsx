@@ -11,9 +11,10 @@ import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
 import { AttenDanceCalender } from "../../components/Attendance.components";
 
-const Attendance = ({isManager = false}) => {
+const Attendance = ({ isManager = false }) => {
   const { currentUser } = useAuth();
   const [todayRecord, setTodayRecord] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState("");
   const [isLate, setIsLate] = useState(false);
   const [lateReason, setLateReason] = useState("");
   const [lastPending, setLastPending] = useState(null);
@@ -21,6 +22,27 @@ const Attendance = ({isManager = false}) => {
   const [calendarData, setCalendarData] = useState({});
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
+
+  useEffect(() => {
+    if (!todayRecord?.checkIn || todayRecord?.checkOut) {
+      setElapsedTime("");
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const checkInTime = new Date(todayRecord.checkIn);
+      const now = new Date();
+
+      const diffMs = now - checkInTime;
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+
+      setElapsedTime(`${hours}h ${minutes}m`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [todayRecord]);
 
   useEffect(() => {
     if (!currentUser?.userId) return;
@@ -125,12 +147,23 @@ const Attendance = ({isManager = false}) => {
         </div>
 
         <div className="attendance-top-card-actions">
-          <button
+          {/* <button
             disabled={todayRecord || actionLoading || loading}
             onClick={handleCheckIn}
             className="attendance-btn attendance-checkin"
           >
             {actionLoading === "checkIn" ? "Sending..." : "Check In"}
+          </button> */}
+          <button
+            disabled={todayRecord || actionLoading || loading}
+            onClick={handleCheckIn}
+            className="attendance-btn attendance-checkin"
+          >
+            {actionLoading === "checkIn"
+              ? "Sending..."
+              : todayRecord?.checkIn && !todayRecord?.checkOut
+                ? elapsedTime || "Calculating..."
+                : "Check In"}
           </button>
           <div className="attendance-action-divide" />
           <button

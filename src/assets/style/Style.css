@@ -114,6 +114,63 @@ body {
   padding: 1.5rem;
 }
 
+/* ------ Modal ------ */
+.model-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #00000038;
+  backdrop-filter: blur(2px);
+}
+
+.model-content {
+  background-color: var(--card);
+  border-radius: 8px;
+  width: 600px;
+  max-width: 97vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.model-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 18px;
+  background-color: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.model-header-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.model-header-close-btn {
+  background: var(--primary-hover);
+  color: var(--primary);
+  border: none;
+  font-size: 18px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.model-content-container {
+  padding: 15px;
+  background-color: var(--card);
+}
 /* ------  toast ------ */
 [data-sonner-toast] {
   background-color: #1e293b !important;

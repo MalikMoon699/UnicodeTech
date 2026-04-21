@@ -176,54 +176,6 @@
   transform: scale(2);
 }
 
-/* ======== TopBar Style ============ */
-
-.custom-topbar-container {
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 10;
-  width: -webkit-fill-available;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground);
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
-  padding: 23px 12px;
-  opacity: 0.8;
-}
-
-.custom-topbar-inner-container {
-  width: 100%;
-  max-width: 1400px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--foreground);
-}
-
-.custom-topbar-title {
-  font-size: 22px;
-}
-
-.custom-topbar-credit {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  background-color: transparent;
-  transition: 0.3s;
-  padding: 5px;
-  border-radius: 4px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.custom-topbar-credit:hover {
-  background-color: var(--muted);
-}
-
 /* ============ Load More ============ */
 .custom-loadMore-container {
   margin-top: 20px;

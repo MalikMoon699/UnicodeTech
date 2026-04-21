@@ -61,7 +61,6 @@ export const parseDate = (date) => {
   return new Date(date);
 };
 
-
 export const formateDate = (date) => {
   if (!date) return "-";
 

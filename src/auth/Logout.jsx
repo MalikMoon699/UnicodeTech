@@ -18,8 +18,13 @@ const Logout = ({ onClose }) => {
   };
 
   return (
-    <div onClick={onClose} className="modal-overlay">
-      <div onClick={(e)=>{e.stopPropagation()}} className="modal-content logout-modal">
+    <div onClick={onClose} className="model-overlay">
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        className="model-content logout-modal"
+      >
         <div className="logout-icon">
           <TriangleAlert size={48} />
         </div>

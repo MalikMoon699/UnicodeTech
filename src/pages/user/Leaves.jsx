@@ -1,135 +1,156 @@
 import React, { useEffect, useState } from "react";
-import "../../assets/style/Leave.css";
-import { createLeave, listenUserLeaves } from "../../services/user/leave.services";
+import {
+  Header,
+  LoadMore,
+  StatesCard,
+} from "../../components/CustomComponents";
+import { LeaveRequestModal } from "../../components/Attendance.components";
+import {
+  CalendarCheck,
+  CalendarClock,
+  CalendarDays,
+  CalendarPlus,
+  CalendarX,
+} from "lucide-react";
+import {
+  getLeaveStatsByUserId,
+  listenRequestsFirstPage,
+  loadMoreRequests,
+  submitLeaveRequest,
+} from "../../services/manager/leave.services";
 import { useAuth } from "../../context/AuthContext";
+import { limit } from "../../utils/constants";
+import { LeaveList } from "../../components/Leave.components";
+import Loader from "../../components/Loader";
 
 const Leaves = () => {
   const { currentUser } = useAuth();
+  const [leaveStats, setLeaveStats] = useState(null);
+  const [requests, setRequests] = useState([]);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [isApply, setIsApply] = useState(false);
 
-  const [dates, setDates] = useState([]);
-  const [reason, setReason] = useState("");
-  const [leaves, setLeaves] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(null);
-
-
-const   date= new Date();
-console.log("date----->", date);
-
-  // 📌 fetch leaves
   useEffect(() => {
-    if (!currentUser?.userId) return;
+    setLoadingStates(true);
 
-    const unsub = listenUserLeaves(currentUser.userId, (data) => {
-      setLeaves(data);
-      setLoading(false);
-    });
-
-    return () => unsub && unsub();
-  }, [currentUser]);
-
-  // 📌 add date
-  const addDate = (date) => {
-    if (!date) return;
-
-    if (dates.find((d) => d.date === date)) return;
-
-    setDates([...dates, { date, status: "pending" }]);
-  };
-
-  // 📌 remove date
-  const removeDate = (date) => {
-    setDates(dates.filter((d) => d.date !== date));
-  };
-
-  // 📌 submit leave
-  const submitLeave = async () => {
-    if (!reason || dates.length === 0) return;
-
-    await createLeave({
+    const unsubscribe = getLeaveStatsByUserId({
       userId: currentUser.userId,
-      type: "user",
-      dates,
-      reason,
+      callback: (stats) => {
+        setLeaveStats(stats);
+        setLoadingStates(false);
+      },
     });
 
-    setDates([]);
-    setReason("");
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = listenRequestsFirstPage({
+      userId: currentUser.userId,
+      pageLimit: limit,
+      callback: ({ data, lastDoc, hasMore }) => {
+        setRequests(data);
+        setLastDoc(lastDoc);
+        setHasMore(hasMore);
+        setLoading(false);
+      },
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loadMoreRecords = async () => {
+    if (!lastDoc) return;
+
+    setLoadingMore(true);
+
+    const res = await loadMoreRequests({
+      userId: currentUser.userId,
+      pageLimit: limit,
+      lastDoc,
+    });
+
+    setRequests((prev) => [...prev, ...res.data]);
+    setLastDoc(res.lastDoc);
+    setHasMore(res.hasMore);
+
+    setLoadingMore(false);
   };
 
   return (
-    <div className="leave-container">
-      {/* FORM */}
-      <div className="leave-card">
-        <h2 className="leave-title">Apply Leave</h2>
-
-        <input
-          type="date"
-          className="leave-input"
-          onChange={(e) => addDate(e.target.value)}
+    <div className="page-container">
+      <Header
+        title="Leave Management"
+        desc="Apply and track your leave requests"
+        context={
+          <button className="leave-submit-btn" onClick={() => setIsApply(true)}>
+            <span className="icon">
+              <CalendarPlus size={18} />
+            </span>
+            Apply Leave
+          </button>
+        }
+      />
+      <div
+        style={{ margin: "30px 0px" }}
+        className="custom-dashboard-stats-container"
+      >
+        <StatesCard
+          icon={CalendarDays}
+          iColor="var(--card-foreground)"
+          title="Total Requests"
+          value={leaveStats?.totalRequests || 0}
+          loading={loadingStates}
         />
 
-        <div className="leave-date-list">
-          {dates.map((d) => (
-            <div key={d.date} className="leave-date-chip">
-              {d.date}
-              <span onClick={() => removeDate(d.date)}>✕</span>
-            </div>
-          ))}
-        </div>
-
-        <textarea
-          className="leave-textarea"
-          placeholder="Reason..."
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
+        <StatesCard
+          icon={CalendarCheck}
+          iColor="var(--status-approved)"
+          title="Approved"
+          value={leaveStats?.approved || 0}
+          loading={loadingStates}
         />
 
-        <button className="leave-btn" onClick={submitLeave}>
-          Submit Leave
-        </button>
+        <StatesCard
+          icon={CalendarClock}
+          iColor="var(--status-pending)"
+          title="Pending"
+          value={leaveStats?.pending || 0}
+          loading={loadingStates}
+        />
+
+        <StatesCard
+          icon={CalendarX}
+          iColor="var(--status-rejected)"
+          title="Rejected"
+          value={leaveStats?.rejected || 0}
+          loading={loadingStates}
+        />
       </div>
-
-      {/* LIST */}
-      <div className="leave-list">
-        <h3 className="leave-subtitle">My Leaves</h3>
-
-        {loading ? (
-          <div className="leave-loading">Loading...</div>
-        ) : (
-          leaves.map((l) => (
-            <div key={l.id} className="leave-item">
-              <div className="leave-item-header">
-                <div>
-                  <strong>{l.reason}</strong>
-                  <p className="leave-status">{l.overallStatus}</p>
-                </div>
-
-                <button
-                  className="leave-view-btn"
-                  onClick={() => setExpanded(expanded === l.id ? null : l.id)}
-                >
-                  {expanded === l.id ? "Hide" : "View"}
-                </button>
-              </div>
-
-              {/* SUMMARY */}
-              <div className="leave-summary">Total Days: {l.dates?.length}</div>
-
-              {/* EXPAND */}
-              {expanded === l.id && (
-                <div className="leave-expanded">
-                  {l.dates.map((d, i) => (
-                    <div key={i} className="leave-date-row">
-                      {d.date} - {d.status}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
+      {loading ? (
+        <Loader style={{ marginTop: "30px", height: "70vh" }} />
+      ) : (
+        <>
+          <LeaveList leaves={requests} />
+          <LoadMore
+            loading={loadingMore}
+            disabled={loadingMore || loading}
+            show={hasMore || loadingMore}
+            onLoad={loadMoreRecords}
+          />
+        </>
+      )}
+      {isApply && (
+        <LeaveRequestModal
+          onClose={() => setIsApply(false)}
+          onSendRequest={submitLeaveRequest}
+        />
+      )}
     </div>
   );
 };

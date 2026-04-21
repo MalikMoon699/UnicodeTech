@@ -5,13 +5,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  MoveLeft,
-  MoveRight,
-  X,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
-
+import { Input, ProfileImage, SearchInput, Selector } from "./CustomComponents";
+import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
+import { useDebounce } from "../utils/hooks/useDebounce";
+import { getUsersWithoutPaginationHelper } from "../services/admin/users.serveces";
+import { IMAGES } from "../utils/constants";
 
 export const AttenDanceCalender = ({
   loading,
@@ -303,166 +304,169 @@ export const CalendarSkeleton = () => {
   );
 };
 
-export const LeaveRequestModal = ({ onClose, editData }) => {
+export const LeaveRequestModal = ({ onClose, onSendRequest }) => {
   const { currentUser } = useAuth();
-  const [requestType, setRequestType] = useState("halfDay");
-  const [selectedMonth,setSelectedMonth]=("");
-  const [duration, setDuration] = useState([{date: new Date()}]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [requestType, setRequestType] = useState("oneDay");
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [duration, setDuration] = useState([{ date: today }]);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
-
-  // Prefill when editing
-  useEffect(() => {
-    if (editData) {
-      setRequestType(editData.type || "halfDay");
-      setReason(editData.reason || "");
-      if (editData.type === "halfDay") {
-        setStartDate(editData.date?.toDate?.() || new Date());
-        setSelectedDate(editData.date?.toDate?.() || new Date());
-        setStartTime(editData.startTime ? convertTo24(editData.startTime) : "");
-        setEndTime(editData.endTime ? convertTo24(editData.endTime) : "");
-      } else if (editData.type === "fullDay") {
-        setStartDate(editData.date?.toDate?.() || new Date());
-        setSelectedDate(editData.date?.toDate?.() || new Date());
-      } else if (editData.type === "longLeave") {
-        setStartDate(editData.startDate?.toDate?.() || new Date());
-        setEndDate(editData.endDate?.toDate?.() || null);
-      }
-    }
-  }, [editData]);
-
-  const convertTo24 = (time12) => {
-    if (!time12) return "";
-    const [time, modifier] = time12.split(" ");
-    let [hours, minutes] = time.split(":").map(Number);
-    if (modifier === "PM" && hours < 12) hours += 12;
-    if (modifier === "AM" && hours === 12) hours = 0;
-    return `${String(hours).padStart(2, "0")}:${minutes}`;
-  };
-
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+  useEffect(() => {
+    setDuration([{ date: today }]);
+  }, [requestType]);
+
   const calendarDays = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const year = selectedMonth.getFullYear();
+    const month = selectedMonth.getMonth();
 
-    const firstDayOfMonth = new Date(year, month, 1);
-    const startingDayOfWeek = firstDayOfMonth.getDay();
+    const firstDay = new Date(year, month, 1);
+    const startDay = firstDay.getDay();
 
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    const daysInMonth = lastDayOfMonth.getDate();
+    const lastDay = new Date(year, month + 1, 0).getDate();
 
-    const daysArray = [];
+    const arr = [];
 
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      daysArray.push(null);
+    for (let i = 0; i < startDay; i++) {
+      arr.push(null);
     }
 
-    for (let i = 1; i <= daysInMonth; i++) {
-      daysArray.push(new Date(year, month, i));
+    for (let i = 1; i <= lastDay; i++) {
+      arr.push(new Date(year, month, i));
     }
 
-    return daysArray;
-  }, [currentMonth]);
+    return arr;
+  }, [selectedMonth]);
 
+  const normalize = (d) => new Date(d).toDateString();
 
+  const isSelected = (date) =>
+    duration.some((d) => normalize(d.date) === normalize(date));
+
+  const isPastDate = (date) => {
+    return date < today;
+  };
+
+  const handleDateClick = (date) => {
+    if (isPastDate(date)) return;
+
+    const exists = isSelected(date);
+
+    if (requestType === "oneDay") {
+      setDuration([{ date }]);
+    } else {
+      if (exists) {
+        setDuration((prev) =>
+          prev.filter((d) => normalize(d.date) !== normalize(date)),
+        );
+      } else {
+        setDuration((prev) => [...prev, { date }]);
+      }
+    }
+  };
+
+  const goToPrevMonth = () => {
+    const prev = new Date(
+      selectedMonth.getFullYear(),
+      selectedMonth.getMonth() - 1,
+      1,
+    );
+
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+    );
+
+    if (prev >= currentMonthStart) {
+      setSelectedMonth(prev);
+    }
+  };
+
+  const goToNextMonth = () => {
+    setSelectedMonth(
+      new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1),
+    );
+  };
+
+  const handleSendRequest = async () => {
+    if (duration.length === 0)
+      return toast.error("Please select at least one date.");
+    else if (reason.trim() === "")
+      return toast.error("Please provide a reason for your leave request.");
+
+    try {
+      setLoading(true);
+      await onSendRequest({
+        requestData: {
+          userIds: [currentUser.userId],
+          createdBy: currentUser.userId,
+          duration,
+          reason,
+        },
+      });
+      toast.success("Leave request submitted successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to submit leave request. Please try again.");
+    } finally {
+      setLoading(false);
+      onClose();
+    }
+  };
 
   return (
-    <div className="modal-overlay">
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="modal-content"
-        style={{ padding: "25px 30px", width: "580px" }}
-      >
-        <div
-          style={{
-            width: "520px",
-            position: "sticky",
-            top: "-26px",
-            left: "0px",
-            padding: "18px 0px 15px 0px",
-            background: "white",
-          }}
-          className="leave-modal-header-container"
-        >
-          <h2 className="leave-modal-title">
-            {isEditMode ? "Edit Request" : "Add Request"}
-          </h2>
+    <div className="model-overlay">
+      <div onClick={(e) => e.stopPropagation()} className="model-content">
+        <div className="model-header">
+          <h3 className="model-header-title">Add Request</h3>
           <button
+            className="model-header-close-btn"
             disabled={loading}
             onClick={onClose}
-            className="close-modal-btn"
           >
-            <X size={20} />
+            ✕
           </button>
         </div>
+        <div className="model-content-container">
+          <Selector
+            filter={requestType}
+            setFilter={setRequestType}
+            options={[
+              { filter: "oneDay", label: "One Day" },
+              { filter: "longLeave", label: "Long Leave" },
+            ]}
+            width="100%"
+          />
+          <div className="calendar-modal-container">
+            <div className="year-header">
+              <button className="year-nav-btn left" onClick={goToPrevMonth}>
+                <span className="icon">
+                  <ChevronLeft />
+                </span>
+              </button>
 
-        <div className="input-modal-container">
-          <label className="input-modal-label">Request Type</label>
-          <select
-            className="request-modal-select"
-            value={requestType}
-            onChange={handleRequestTypeChange}
-          >
-            <option value="halfDay">Half Day</option>
-            <option value="fullDay">Full Day</option>
-            <option value="longLeave">Long Leave</option>
-          </select>
-        </div>
-
-        {requestType === "halfDay" && (
-          <div className="tab-modal-container">
-            <button
-              className={`tab-modal-btn ${
-                activeTab === "days" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("days")}
-            >
-              Days
-            </button>
-            <button
-              className={`tab-modal-btn ${
-                activeTab === "hours" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("hours")}
-            >
-              Hours
-            </button>
-          </div>
-        )}
-
-        {activeTab === "days" && (
-          <div
-            className="calendar-modal-container"
-            style={{
-              border: errors.startDate || errors.endDate ? "1px solid red" : "",
-              marginTop: requestType === "halfDay" ? "20px" : "40px",
-            }}
-          >
-            <div className="calendar-modal-header">
-              <span onClick={goToPrevMonth} style={{ cursor: "pointer" }}>
-                <MoveLeft />
-              </span>
               <h3>
-                {currentMonth.toLocaleString("default", { month: "long" })},{" "}
-                {currentMonth.getFullYear()}
+                {selectedMonth.toLocaleString("en-US", { month: "long" })},{" "}
+                {selectedMonth.getFullYear()}
               </h3>
-              <span onClick={goToNextMonth} style={{ cursor: "pointer" }}>
-                <MoveRight />
-              </span>
+
+              <button className="year-nav-btn right" onClick={goToNextMonth}>
+                <span className="icon">
+                  <ChevronRight />
+                </span>
+              </button>
             </div>
 
-            {/* Weekdays */}
             <div className="calendar-modal-days">
               {days.map((d, idx) => {
-                const active =
-                  requestType === "longLeave"
-                    ? calendarDays.some(
-                        (date) =>
-                          date && isInRange(date) && date.getDay() === idx,
-                      )
-                    : selectedDate && selectedDate.getDay() === idx;
+                const active = duration.some(
+                  (item) => new Date(item.date).getDay() === idx,
+                );
 
                 return (
                   <span
@@ -480,26 +484,13 @@ export const LeaveRequestModal = ({ onClose, editData }) => {
                 date ? (
                   <button
                     key={i}
-                    className="calendar-modal-date"
+                    disabled={isPastDate(date)}
+                    className={`calendar-modal-date ${
+                      isPastDate(date) ? "disabled" : ""
+                    }`}
                     onClick={() => handleDateClick(date)}
                   >
-                    <span
-                      className={
-                        requestType === "longLeave"
-                          ? isInRange(date)
-                            ? "selected"
-                            : startDate &&
-                                !endDate &&
-                                startDate.toDateString() === date.toDateString()
-                              ? "selected"
-                              : ""
-                          : selectedDate &&
-                              selectedDate.toDateString() ===
-                                date.toDateString()
-                            ? "selected"
-                            : ""
-                      }
-                    >
+                    <span className={isSelected(date) ? "selected" : ""}>
                       {date.getDate()}
                     </span>
                   </button>
@@ -509,92 +500,404 @@ export const LeaveRequestModal = ({ onClose, editData }) => {
               )}
             </div>
           </div>
-        )}
 
-        {activeTab === "hours" && (
-          <div className="time-modal-container">
-            <div className="modal-time-input-container">
-              <div className="modal-time-input-wrapper">
-                <span className="modal-time-label">From</span>
-                <input
-                  type="time"
-                  value={startTime}
-                  min={
-                    selectedDate &&
-                    selectedDate.toDateString() === new Date().toDateString()
-                      ? new Date().toISOString().slice(11, 16)
-                      : "00:00"
-                  }
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="modal-time-input"
-                  style={{
-                    border: errors.startTime ? "1px solid red" : "",
-                  }}
-                />
-              </div>
-              <div className="modal-time-input-wrapper">
-                <span className="modal-time-label">To</span>
-                <input
-                  type="time"
-                  value={endTime}
-                  min={startTime || "00:00"}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="modal-time-input"
-                  style={{
-                    border: errors.endTime ? "1px solid red" : "",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="modal-selected-time-section">
-              <span className="modal-time-label">Selected Time</span>
-              <div className="modal-selected-time-box">
-                <p className="modal-leave-description">Time for Leave</p>
-                <h2 className="modal-leave-duration">
-                  {timeDifference || "0h 0m"}
-                </h2>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="input-modal-container">
-          <label className="modal-time-label">Reason</label>
-          <textarea
-            placeholder="Leave reason..."
-            className="request-modal-textarea"
+          <Input
             value={reason}
-            style={{
-              border: errors.reason ? "2px solid red" : "",
-            }}
-            onChange={(e) => {
-              setReason(e.target.value);
-            }}
+            setValue={setReason}
+            placeholder="Leave reason..."
+            type="textArea"
+            margin="15px 0px 8px 0px"
+            style={{ height: "150px" }}
           />
-        </div>
-        <div className="submit-modal-container">
-          <button
-            onClick={handleSendRequest}
-            className="add-leave-modal-request-button"
-            style={{ cursor: loading ? "not-allowed" : "pointer" }}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader
-                loading={true}
-                style={{ height: "23px", width: "100px" }}
-                color="white"
-                size="30"
-              />
-            ) : isEditMode ? (
-              "Update Request"
-            ) : (
-              "Send Request"
-            )}
-          </button>
+
+          <div className="submit-modal-container">
+            <button
+              className="leave-submit-btn"
+              disabled={loading}
+              onClick={handleSendRequest}
+            >
+              {loading ? (
+                <Loader style={{ width: "88px" }} size={16} color="#fff" />
+              ) : (
+                "Send Request"
+              )}
+            </button>
+          </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
+  const { currentUser } = useAuth();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [duration, setDuration] = useState([{ date: today }]);
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [isVisible, setIsVisible] = useState({
+    calender: false,
+    textArea: false,
+    userSelector: false,
+  });
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  useEffect(() => {
+    loadUsers(debouncedSearchTerm);
+  }, [debouncedSearchTerm]);
+
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const calendarDays = useMemo(() => {
+    const year = selectedMonth.getFullYear();
+    const month = selectedMonth.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const startDay = firstDay.getDay();
+
+    const lastDay = new Date(year, month + 1, 0).getDate();
+
+    const arr = [];
+
+    for (let i = 0; i < startDay; i++) {
+      arr.push(null);
+    }
+
+    for (let i = 1; i <= lastDay; i++) {
+      arr.push(new Date(year, month, i));
+    }
+
+    return arr;
+  }, [selectedMonth]);
+
+  const normalize = (d) => new Date(d).toDateString();
+
+  const isSelected = (date) =>
+    duration.some((d) => normalize(d.date) === normalize(date));
+
+  const isPastDate = (date) => {
+    return date < today;
+  };
+
+  const handleDateClick = (date) => {
+    if (isPastDate(date)) return;
+
+    const exists = isSelected(date);
+
+    if (exists) {
+      setDuration((prev) =>
+        prev.filter((d) => normalize(d.date) !== normalize(date)),
+      );
+    } else {
+      setDuration((prev) => [...prev, { date }]);
+    }
+  };
+
+  const goToPrevMonth = () => {
+    const prev = new Date(
+      selectedMonth.getFullYear(),
+      selectedMonth.getMonth() - 1,
+      1,
+    );
+
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+    );
+
+    if (prev >= currentMonthStart) {
+      setSelectedMonth(prev);
+    }
+  };
+
+  const goToNextMonth = () => {
+    setSelectedMonth(
+      new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1),
+    );
+  };
+
+  const handleSendRequest = async () => {
+    if (duration.length === 0)
+      return toast.error("Please select at least one date.");
+    else if (reason.trim() === "")
+      return toast.error("Please provide a reason for your leave request.");
+    else if (selectedUsers.length === 0)
+      return toast.error(
+        "Please select at least one user for this leave request.",
+      );
+
+    try {
+      setLoading(true);
+      await onSendRequest({
+        requestData: {
+          createdBy: currentUser.userId,
+          userIds: selectedUsers,
+          duration,
+          reason,
+        },
+        type: "boss",
+      });
+      toast.success("Leave request submitted successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to submit leave request. Please try again.");
+    } finally {
+      setLoading(false);
+      onClose();
+    }
+  };
+
+  const toggleVisibility = (key) => {
+    setIsVisible((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const loadUsers = async (search = "") => {
+    try {
+      setLoadingUsers(true);
+      const res = await getUsersWithoutPaginationHelper({ search });
+      setUsers(res);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load users. Please try again.");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  return (
+    <div className="model-overlay">
+      <div onClick={(e) => e.stopPropagation()} className="model-content">
+        <div className="model-header">
+          <h3 className="model-header-title">Add Request</h3>
+          <button
+            className="model-header-close-btn"
+            disabled={loading}
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="model-content-container">
+          <HidenSelector
+            title="Choose Days"
+            value={isVisible.calender}
+            onClick={() => toggleVisibility("calender")}
+            margin="15px 0px 0px"
+            style={{
+              borderRadius: isVisible.calender ? "8px 8px 0px 0px" : "8px",
+            }}
+          />
+
+          <div
+            className={`calendar-modal-container admin-add-leave-hidden-item ${
+              isVisible.calender ? "open" : "closed"
+            }`}
+            style={{
+              maxHeight: isVisible.calender ? "500px" : "0px",
+              borderRadius: "0px 0px 8px 8px",
+              marginTop: "0px",
+            }}
+          >
+            <div className="year-header">
+              <button className="year-nav-btn left" onClick={goToPrevMonth}>
+                <span className="icon">
+                  <ChevronLeft />
+                </span>
+              </button>
+
+              <h3>
+                {selectedMonth.toLocaleString("en-US", { month: "long" })},{" "}
+                {selectedMonth.getFullYear()}
+              </h3>
+
+              <button className="year-nav-btn right" onClick={goToNextMonth}>
+                <span className="icon">
+                  <ChevronRight />
+                </span>
+              </button>
+            </div>
+
+            <div className="calendar-modal-days">
+              {days.map((d, idx) => {
+                const active = duration.some(
+                  (item) => new Date(item.date).getDay() === idx,
+                );
+
+                return (
+                  <span
+                    key={d}
+                    className={`day-modal-name ${active ? "active" : ""}`}
+                  >
+                    {d}
+                  </span>
+                );
+              })}
+            </div>
+
+            <div className="calendar-modal-grid">
+              {calendarDays.map((date, i) =>
+                date ? (
+                  <button
+                    key={i}
+                    disabled={isPastDate(date)}
+                    className={`calendar-modal-date ${
+                      isPastDate(date) ? "disabled" : ""
+                    }`}
+                    onClick={() => handleDateClick(date)}
+                  >
+                    <span className={isSelected(date) ? "selected" : ""}>
+                      {date.getDate()}
+                    </span>
+                  </button>
+                ) : (
+                  <span key={i} className="calendar-empty-slot" />
+                ),
+              )}
+            </div>
+          </div>
+
+          <HidenSelector
+            title="Reason for leave"
+            value={isVisible.textArea}
+            onClick={() => toggleVisibility("textArea")}
+            margin="15px 0px 0px"
+            style={{
+              borderRadius: isVisible.textArea ? "8px 8px 0px 0px" : "8px",
+            }}
+          />
+
+          <div
+            className={`calendar-modal-container admin-add-leave-hidden-item ${
+              isVisible.textArea ? "open" : "closed"
+            }`}
+            style={{
+              maxHeight: isVisible.textArea ? "500px" : "0px",
+              margin: "0px",
+              padding: "0px",
+            }}
+          >
+            <Input
+              value={reason}
+              setValue={setReason}
+              placeholder="Leave reason..."
+              type="textArea"
+              margin="0px 0px -4px"
+              style={{ height: "150px", borderRadius: "0px 0px 8px 8px" }}
+            />
+          </div>
+
+          <HidenSelector
+            title={`Select Users (${selectedUsers?.length || 0})`}
+            value={isVisible.userSelector}
+            onClick={() => toggleVisibility("userSelector")}
+            margin="15px 0px 0px"
+            style={{
+              borderRadius: isVisible.userSelector ? "8px 8px 0px 0px" : "8px",
+            }}
+          />
+
+          <div
+            className={`calendar-modal-container admin-add-leave-hidden-item ${
+              isVisible.userSelector ? "open" : "closed"
+            }`}
+            style={{
+              maxHeight: isVisible.userSelector ? "500px" : "0px",
+              margin: "0px",
+              padding: "0px",
+              borderRadius: "0px 0px 8px 8px",
+            }}
+          >
+            <SearchInput
+              value={searchTerm}
+              setValue={setSearchTerm}
+              disabled={loadingUsers}
+              margin="4px"
+              width="auto"
+            />
+            {loadingUsers ? (
+              <Loader style={{ height: "150px" }} size={40} color="#fff" />
+            ) : users?.length > 0 ? (
+              users.map((u) => {
+                const isSelected = selectedUsers.includes(u.userId);
+                const toggleUser = () => {
+                  if (isSelected) {
+                    setSelectedUsers((prev) =>
+                      prev.filter((id) => id !== u.userId),
+                    );
+                  } else {
+                    setSelectedUsers((prev) => [...prev, u.userId]);
+                  }
+                };
+
+                return (
+                  <div
+                    key={u.userId}
+                    className={`admin-leave-user-select-item ${
+                      isSelected ? "selected" : ""
+                    }`}
+                    onClick={toggleUser}
+                  >
+                    <ProfileImage
+                      Image={u?.profileImage || IMAGES.PlaceHolder}
+                      className="admin-leave-user-avatar"
+                    />
+
+                    <div className="admin-leave-user-info">
+                      <h3>{u.fullName}</h3>
+                      <p>{u.email}</p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="empty-data">No users found.</p>
+            )}
+          </div>
+
+          <div className="submit-modal-container">
+            <button
+              className="leave-submit-btn"
+              disabled={loading}
+              onClick={handleSendRequest}
+            >
+              {loading ? (
+                <Loader style={{ width: "88px" }} size={16} color="#fff" />
+              ) : (
+                "Send Request"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HidenSelector = ({
+  title = "",
+  value,
+  onClick,
+  margin = "",
+  style = {},
+}) => {
+  return (
+    <div
+      onClick={onClick}
+      className="admin-add-leave-hidden-selector"
+      style={{ margin, ...style }}
+    >
+      <span className="elepsis">{title}</span>
+      <span className="icon">
+        {value ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </span>
     </div>
   );
 };

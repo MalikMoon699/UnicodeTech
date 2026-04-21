@@ -168,6 +168,9 @@ export const AuthProvider = ({ children }) => {
     await setDoc(doc(db, "UserIndex", authUser.uid), {
       role: "user",
       collection: "Users",
+      fullName: name,
+      email,
+      profileImage: "",
       docId: userId,
       status: "pending",
       searchText: [

@@ -49,7 +49,7 @@ export const updateLeaveStatus = async (leaveId, status, adminId) => {
 
   await updateDoc(ref, {
     overallStatus: status,
-    approvedBy: adminId,
+    reviewedBy: adminId,
     updatedAt: serverTimestamp(),
   });
 };
