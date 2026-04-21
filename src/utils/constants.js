@@ -52,8 +52,8 @@ export const AdminSidebarMenu = [
   {
     name: "Chats",
     icon: "MessageCircle",
-    route: "/admin/chats",
-    activeAt: "/admin/chats",
+    route: "/chats",
+    activeAt: "/chats",
   },
   {
     name: "Settings",
@@ -91,8 +91,8 @@ export const ManagerSidebarMenu = [
   {
     name: "Chats",
     icon: "MessageCircle",
-    route: "/manager/chats",
-    activeAt: "/manager/chats",
+    route: "/chats",
+    activeAt: "/chats",
   },
   {
     name: "Settings",

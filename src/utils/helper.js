@@ -119,3 +119,19 @@ export const formateDateTime = (date) => {
   const formattedTime = `${hours.toString().padStart(2, "0")}:${minutes} ${ampm}`;
   return `${year}-${month}-${day} ${formattedTime}`;
 };
+
+export const formateTime = (date) => {
+  if (!date) return "";
+
+  const d = parseDate(date);
+
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+
+  hours = hours % 12;
+  hours = hours === 0 ? 12 : hours;
+
+  return `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
+};

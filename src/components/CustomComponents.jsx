@@ -4,13 +4,20 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Clock,
   Eye,
   EyeClosed,
+  MessageCircleMoreIcon,
   Search,
+  User,
   X,
 } from "lucide-react";
 import { IMAGES } from "../utils/constants";
 import Loader from "./Loader";
+import { getUserByIdFromUserIndex } from "../services/admin/leaves.services";
+import { useAuth } from "../context/AuthContext";
+import { formateDateTime, formateTime } from "../utils/helper";
+import { useNavigate } from "react-router";
 
 export const Input = ({
   label = "",
@@ -568,6 +575,126 @@ export const Tabs = ({
           );
         })}
       </div>
+    </div>
+  );
+};
+
+export const UserHover = ({ userId, children, delay = 300 }) => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const timerRef = useRef(null);
+  const hoverRef = useRef(false);
+  const isMe = userId === currentUser?.userId;
+  const time = new Date();
+
+  useEffect(() => {
+    if (!userId) return;
+    else if (isMe) return setData(currentUser);
+    getData();
+  }, [userId]);
+
+  const handleEnter = () => {
+    hoverRef.current = true;
+
+    timerRef.current = setTimeout(() => {
+      if (hoverRef.current) {
+        setShow(true);
+      }
+    }, delay);
+  };
+
+  const handleLeave = () => {
+    hoverRef.current = false;
+
+    clearTimeout(timerRef.current);
+
+    setTimeout(() => {
+      if (!hoverRef.current) {
+        setShow(false);
+      }
+    }, 100);
+  };
+
+  const getData = async () => {
+    setLoading(true);
+    try {
+      const userData = await getUserByIdFromUserIndex(userId);
+      setData(userData);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{ position: "relative", display: "inline-block" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      {children}
+
+      {show && (
+        <div
+          className="custom-attendanceHover-tooltip"
+          style={{ padding: "0px", maxWidth: "360px" }}
+        >
+          {loading ? (
+            <div style={{ textAlign: "center" }}>
+              <Loader size="40" style={{ height: "193px", width: "350px" }} />
+            </div>
+          ) : data ? (
+            <div className="user-hover-content">
+              <div className="user-hover-user-info">
+                <ProfileImage
+                  className="user-hover-image"
+                  Image={data?.profileImage || IMAGES.PlaceHolder}
+                />
+                <div className="user-hover-user-info-container">
+                  <p>{data?.fullName || "N/A"}</p>
+                  <p>{data?.email || "N/A"}</p>
+                </div>
+              </div>
+              <div className="sidebar-divider" />
+              <div className="user-hover-bottom">
+                <p>
+                  <span className="icon">
+                    <Clock size={18} />
+                  </span>{" "}
+                  {formateTime(time)} local time
+                </p>
+                {isMe ? (
+                  <button
+                    onClick={() => navigate("/settings")}
+                    className="user-hover-action-btn"
+                  >
+                    <span className="icon">
+                      <User />
+                    </span>
+                    Update Profile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate("/chats")}
+                    className="user-hover-action-btn"
+                  >
+                    <span className="icon">
+                      <MessageCircleMoreIcon size={20} />
+                    </span>
+                    Direct Chat
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: "center" }}>No data found.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

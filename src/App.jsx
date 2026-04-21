@@ -6,6 +6,7 @@ import LandingPage from "./pages/LandingPage.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Auth from "./auth/Auth.jsx";
 import Setting from "./pages/Settings.jsx";
+import Chats from "./pages/Chats.jsx";
 
 // ================= Admin Pages =================
 import AdminDashBoard from "./pages/admin/DashBoard.jsx";
@@ -13,21 +14,19 @@ import AdminUsers from "./pages/admin/Users.jsx";
 import AdminAttendance from "./pages/admin/Attendance.jsx";
 import AdminLeaves from "./pages/admin/Leaves.jsx";
 import AdminDayEndStatus from "./pages/admin/DayEndStatus.jsx";
-import AdminChats from "./pages/admin/Chats.jsx";
 
 // ================= Manager Pages =================
 import ManagerDashBoard from "./pages/manager/DashBoard.jsx";
 import ManagerAttendance from "./pages/manager/Attendance.jsx";
 import ManagerLeaves from "./pages/manager/Leaves.jsx";
 import ManagerDayEndStatus from "./pages/manager/DayEndStatus.jsx";
-import ManagerChats from "./pages/manager/Chats.jsx";
 
 // ================= User Pages =================
 import UserDashBoard from "./pages/user/DashBoard.jsx";
 import UserAttendance from "./pages/user/Attendance.jsx";
 import UserLeaves from "./pages/user/Leaves.jsx";
 import UserDayEndStatus from "./pages/user/DayEndStatus.jsx";
-import UserChats from "./pages/user/Chats.jsx";
+
 import { useAuth } from "./context/AuthContext.jsx";
 import { usePresence } from "./utils/hooks/usePresence.js";
 
@@ -88,15 +87,6 @@ const {currentUser}=useAuth();
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/chats"
-          element={
-            <ProtectedRoute role={["admin"]}>
-              <AdminChats />
-            </ProtectedRoute>
-          }
-        />
-
         {/* ========== MANAGER ROUTES ========== */}
         <Route
           path="/manager/dashboard"
@@ -130,15 +120,6 @@ const {currentUser}=useAuth();
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/manager/chats"
-          element={
-            <ProtectedRoute role={["manager"]}>
-              <ManagerChats />
-            </ProtectedRoute>
-          }
-        />
-
         {/* ========== USER ROUTES ========== */}
         <Route
           path="/dashboard"
@@ -172,16 +153,15 @@ const {currentUser}=useAuth();
             </ProtectedRoute>
           }
         />
+        {/* ========== COMMON ROUTES ========== */}
         <Route
           path="/chats"
           element={
-            <ProtectedRoute role={["user"]}>
-              <UserChats />
+            <ProtectedRoute>
+              <Chats />
             </ProtectedRoute>
           }
         />
-
-        {/* ========== COMMON ROUTES ========== */}
         <Route
           path="/settings"
           element={

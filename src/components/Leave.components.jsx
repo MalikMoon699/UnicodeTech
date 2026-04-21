@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { formateDateTime } from "../utils/helper";
-import { ProfileImage } from "./CustomComponents";
+import { ProfileImage, UserHover } from "./CustomComponents";
 import { IMAGES } from "../utils/constants";
 import {
   getUserByIdFromUserIndex,
@@ -101,10 +101,12 @@ export const LeaveList = ({ leaves, type = "user" }) => {
                 {isAdmin && (
                   <div className="leave-meta">
                     <User size={14} />
-                    <span>
-                      {leave?.user?.fullName || "N/A"} •{" "}
-                      {leave?.user?.email || "N/A"}
-                    </span>
+                    <UserHover userId={leave?.createdBy}>
+                      <span className="user-hover-child">
+                        {leave?.user?.fullName || "N/A"} •{" "}
+                        {leave?.user?.email || "N/A"}
+                      </span>
+                    </UserHover>
                   </div>
                 )}
                 <div className="leave-meta">
