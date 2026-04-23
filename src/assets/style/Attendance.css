@@ -507,6 +507,7 @@
 .admin-add-leave-hidden-item.open {
   max-height: 500px;
   opacity: 1;
+  overflow: auto;
 }
 
 .admin-leave-user-select-item {
@@ -545,14 +546,12 @@
 .admin-leave-user-info > h3 {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
-  margin: 0;
+  color: var(--card-foreground);
 }
 
 .admin-leave-user-info > p {
   font-size: 12px;
-  color: #aaa;
-  margin: 0;
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

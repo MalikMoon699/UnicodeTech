@@ -10,8 +10,14 @@ export const ThemeProvider = ({ children }) => {
     }
     return "light";
   };
-  
+
+  const getInitialSubmit = () => {
+    const savedSubmit = localStorage.getItem("isEnterSubmit");
+    return savedSubmit !== null ? savedSubmit === "true" : true;
+  };
+
   const [theme, setTheme] = useState(getInitialTheme);
+  const [isEnterSubmit, setIsEnterSubmit] = useState(getInitialSubmit);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -25,8 +31,16 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem("themeMode", theme);
   }, [theme]);
 
+  useEffect(() => {
+    localStorage.setItem("isEnterSubmit", isEnterSubmit);
+  }, [isEnterSubmit]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
+  const toggleSubmit = () => {
+    setIsEnterSubmit((prev) => !prev);
   };
 
   const setLight = () => setTheme("light");
@@ -37,6 +51,8 @@ export const ThemeProvider = ({ children }) => {
       value={{
         theme,
         toggleTheme,
+        isEnterSubmit,
+        toggleSubmit,
         setLight,
         setDark,
       }}

@@ -16,8 +16,61 @@ import { IMAGES } from "../utils/constants";
 import Loader from "./Loader";
 import { getUserByIdFromUserIndex } from "../services/admin/leaves.services";
 import { useAuth } from "../context/AuthContext";
-import { formateDateTime, formateTime } from "../utils/helper";
+import { formateTime } from "../utils/helper";
 import { useNavigate } from "react-router";
+import { createChat, listenUserChats } from "../services/chats.services";
+
+export const AutoResizeTextarea = ({
+  label = "",
+  value = "",
+  setValue = () => {},
+  placeholder = "Type a message...",
+  margin = "0px",
+  onKeyDownHit = () => {},
+  style = {},
+}) => {
+  const textareaRef = useRef(null);
+
+  const resize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  };
+
+  const handleChange = (e) => {
+    setValue(e.target.value);
+    resize();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onKeyDownHit();
+    }
+  };
+
+  return (
+    <>
+      {label && <label className="custom-input-label">{label}</label>}
+
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        rows={1}
+        style={{
+          ...style,
+          margin,
+          resize: "none",
+        }}
+        className="custom-auto-resize-textarea"
+      />
+    </>
+  );
+};
 
 export const Input = ({
   label = "",
@@ -585,10 +638,22 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [userChats, setUserChats] = useState([]);
   const timerRef = useRef(null);
   const hoverRef = useRef(false);
   const isMe = userId === currentUser?.userId;
   const time = new Date();
+  
+
+  useEffect(() => {
+    if (!currentUser?.authId) return;
+
+    const unsub = listenUserChats(currentUser.authId, (data) => {
+      setUserChats(data);
+    });
+
+    return () => unsub();
+  }, [currentUser]);
 
   useEffect(() => {
     if (!userId) return;
@@ -630,6 +695,32 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
     }
   };
 
+  const handleDirectChat = async () => {
+    if (!userId || !currentUser) return;
+    try {
+      const existingChat = userChats.find(
+        (c) =>
+          c.type === "private" &&
+          c.members?.includes(userId) &&
+          c.members?.includes(currentUser.userId),
+      );
+
+      if (existingChat) {
+        navigate(`/chats?chatId=${existingChat.chatId || existingChat.id}`);
+        return;
+      }
+
+      const newChatId = await createChat(
+        [currentUser.userId, userId],
+        [currentUser.authId, data?.authId],
+      );
+
+      navigate(`/chats?chatId=${newChatId}`);
+    } catch (err) {
+      console.error("Direct chat error:", err);
+    }
+  };
+
   return (
     <div
       style={{ position: "relative", display: "inline-block" }}
@@ -637,7 +728,6 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
       onMouseLeave={handleLeave}
     >
       {children}
-
       {show && (
         <div
           className="custom-attendanceHover-tooltip"
@@ -679,7 +769,7 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
                   </button>
                 ) : (
                   <button
-                    onClick={() => navigate("/chats")}
+                    onClick={handleDirectChat}
                     className="user-hover-action-btn"
                   >
                     <span className="icon">

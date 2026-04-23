@@ -1,0 +1,271 @@
+.chat-container {
+  display: flex;
+  height: 100vh;
+  background: var(--background);
+}
+
+.chat-sidebar {
+  width: 300px;
+  background: var(--secondary);
+  border-right: 1px solid var(--border);
+  padding: 12px;
+}
+
+.chat-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--background);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 15px;
+  transition: 0.3s;
+}
+
+.chat-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+}
+
+.chat-search:focus-within {
+  border-color: var(--primary);
+}
+
+.chat-section-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.chat-section-header .icon {
+  border-radius: 2px;
+  padding: 1px;
+}
+.chat-section-header .icon:hover {
+  background: var(--muted-foreground);
+  color: #fff;
+}
+
+.chat-list {
+  margin: -8px 0px 10px;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chat-item:hover {
+  background: var(--primary-hover);
+}
+
+.chat-item.active {
+  background: var(--primary-hover);
+  color: var(--primary);
+}
+
+.chat-item-profile {
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradian-background);
+}
+
+.chat-empty > img {
+  height: 40vh;
+  width: auto;
+  object-fit: contain;
+}
+
+.chat-empty > h2 {
+  font-size: clamp(24px, 2vw, 14px);
+  color: var(--card-foreground);
+  margin: 10px 0px 0px;
+  font-weight: 600;
+}
+
+.chat-empty > p {
+  font-size: clamp(16px, 2vw, 10px);
+  color: var(--muted-foreground);
+}
+
+.chat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.chat-message-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.chat-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.chat-bubble {
+  background: var(--card);
+  padding: 10px;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+
+.chat-meta {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+
+.chat-text {
+  font-size: 14px;
+}
+
+.chat-input {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* ======================== Create Group ======================== */
+
+.group-create-search {
+  margin: 10px 0px;
+}
+
+.group-create-search input {
+  font-size: 15px;
+}
+
+.group-create-container {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: 250px;
+  overflow: auto;
+}
+
+.group-create-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.group-create-item:hover {
+  background-color: #f3f4f6;
+}
+
+.group-create-item-active {
+  background-color: #e5e7eb;
+}
+
+.group-create-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.group-create-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.group-create-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-create-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.group-create-username {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.group-create-right {
+  position: relative;
+}
+
+.group-create-checkbox {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+}
+
+.group-create-checkbox:checked {
+  border-color: #0f172a;
+  background-color: #0f172a;
+}
+
+.group-create-checkmark {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: white;
+  pointer-events: none;
+}
+
+.group-create-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 20px;
+}

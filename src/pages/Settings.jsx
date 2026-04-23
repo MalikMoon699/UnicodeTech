@@ -15,7 +15,7 @@ import { UpdateProfileHelper } from "../services/setting.services.js";
 import { handleUploadImage } from "../utils/helper.js";
 
 const Setting = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, isEnterSubmit, toggleSubmit } = useTheme();
   const { currentUser } = useAuth();
   const [loadingType, setLoadingType] = useState("");
   const [name, setName] = useState("");
@@ -160,6 +160,20 @@ const Setting = () => {
             </p>
           </div>
           <input type="checkbox" value={theme} onChange={toggleTheme} />
+        </div>
+        <div className="settings-toggle-row" style={{ marginTop: "8px" }}>
+          <div>
+            <span className="settings-toggle-title">Send on Enter</span>
+            <p className="settings-toggle-description">
+              Press Enter to send your message instantly. Turn off to use Enter
+              for a new line and use send button to send.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={isEnterSubmit}
+            onChange={toggleSubmit}
+          />
         </div>
       </section>
     </div>

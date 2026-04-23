@@ -224,7 +224,7 @@ const SidebarSkeleton = ({ isHalfSideBar }) => {
       {[...Array(6)].map((_, i) => (
         <div key={i} className="skeleton-item">
           <div className="skeleton-icon" />
-          {!isHalfSideBar && <div className="skeleton-text" />}
+          <div className={`skeleton-text ${!isHalfSideBar ? "show" : ""}`} />
         </div>
       ))}
     </>

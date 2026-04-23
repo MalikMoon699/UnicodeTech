@@ -5,9 +5,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Search,
 } from "lucide-react";
 import Loader from "../components/Loader";
-import { Input, ProfileImage, SearchInput, Selector } from "./CustomComponents";
+import { Input, ProfileImage, Selector } from "./CustomComponents";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useDebounce } from "../utils/hooks/useDebounce";
@@ -805,7 +806,7 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
           />
 
           <div
-            className={`calendar-modal-container admin-add-leave-hidden-item ${
+            className={`group-create-container admin-add-leave-hidden-item ${
               isVisible.userSelector ? "open" : "closed"
             }`}
             style={{
@@ -813,46 +814,68 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
               margin: "0px",
               padding: "0px",
               borderRadius: "0px 0px 8px 8px",
+              borderTop:"0px"
             }}
           >
-            <SearchInput
-              value={searchTerm}
-              setValue={setSearchTerm}
-              disabled={loadingUsers}
-              margin="4px"
-              width="auto"
-            />
+            <div
+              style={{ margin: "10px 5px" }}
+              className="chat-search group-create-search"
+            >
+              <Search size={18} />
+              <input
+                placeholder="Search users..."
+                value={searchTerm}
+                disabled={loadingUsers}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
             {loadingUsers ? (
               <Loader style={{ height: "150px" }} size={40} color="#fff" />
             ) : users?.length > 0 ? (
-              users.map((u) => {
-                const isSelected = selectedUsers.includes(u.userId);
+              users.map((user) => {
+                const isSelected = selectedUsers.includes(user.userId);
                 const toggleUser = () => {
                   if (isSelected) {
                     setSelectedUsers((prev) =>
-                      prev.filter((id) => id !== u.userId),
+                      prev.filter((id) => id !== user.userId),
                     );
                   } else {
-                    setSelectedUsers((prev) => [...prev, u.userId]);
+                    setSelectedUsers((prev) => [...prev, user.userId]);
                   }
                 };
 
                 return (
                   <div
-                    key={u.userId}
-                    className={`admin-leave-user-select-item ${
-                      isSelected ? "selected" : ""
-                    }`}
-                    onClick={toggleUser}
+                    key={user?.userId}
+                    className={`group-create-item ${isSelected ? "group-create-item-active" : ""}`}
+                    onClick={() => toggleUser(user)}
                   >
-                    <ProfileImage
-                      Image={u?.profileImage || IMAGES.PlaceHolder}
-                      className="admin-leave-user-avatar"
-                    />
+                    <div className="group-create-left">
+                      <ProfileImage
+                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                        className="group-create-avatar"
+                      />
+                      <div className="group-create-user-info">
+                        <h3 className="group-create-name">
+                          {user?.fullName || "N/A"}
+                        </h3>
+                        <p className="group-create-username">
+                          {user?.email || "N/A"}
+                        </p>
+                      </div>
+                    </div>
 
-                    <div className="admin-leave-user-info">
-                      <h3>{u.fullName}</h3>
-                      <p>{u.email}</p>
+                    <div className="group-create-right">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleSelectUser(user)}
+                        className="group-create-checkbox"
+                      />
+
+                      {isSelected && (
+                        <div className="group-create-checkmark">✓</div>
+                      )}
                     </div>
                   </div>
                 );
