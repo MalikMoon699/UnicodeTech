@@ -1,6 +1,13 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import {
-  listenMessages,
+  listenLatestMessages,
+  loadOlderMessages,
   listenUserChats,
   sendMessage,
   markAsSeen,
@@ -8,6 +15,7 @@ import {
   listenActiveUsers,
   editMessage,
   deleteMessage,
+  listenMessageUpdate,
 } from "../services/chats.services";
 import "../assets/style/Chats.css";
 import {
@@ -37,6 +45,8 @@ import { toast } from "sonner";
 import Loader from "../components/Loader";
 import { formateTime } from "../utils/helper";
 
+const MESSAGES_PAGE_SIZE = 30;
+
 const Chats = () => {
   const { currentUser } = useAuth();
   const userId = currentUser?.userId;
@@ -61,11 +71,44 @@ const Chats = () => {
   const [contextMenu, setContextMenu] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [oldestMessageRef, setOldestMessageRef] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
-  const isInitialLoad = useRef(true);
   const prevActiveChatRef = useRef(activeChat);
   const shouldScrollOnChatChange = useRef(false);
+  const unsubscribeMessagesRef = useRef(null);
+  const messageSubscriptionsRef = useRef(new Map());
+  const isFirstSnapshot = useRef(true);
+
+  const mergeMessages = useCallback(
+    (existingMessages, newMessages, prepend = false) => {
+      const map = new Map();
+      existingMessages.forEach((msg) => map.set(msg.id, msg));
+      newMessages.forEach((msg) => map.set(msg.id, msg));
+      let merged = Array.from(map.values());
+      merged.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      return merged;
+    },
+    [],
+  );
+
+  const updateSingleMessage = useCallback((updatedMsg) => {
+    if (!updatedMsg) return;
+    setMessages((prev) => {
+      const exists = prev.some((m) => m.id === updatedMsg.id);
+      if (!exists) return [...prev, updatedMsg];
+      return prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m));
+    });
+  }, []);
+
+  const removeMessage = useCallback((messageId) => {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  }, []);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -73,7 +116,6 @@ const Chats = () => {
         setParams({});
       }
     };
-
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [activeChat, setParams]);
@@ -82,6 +124,11 @@ const Chats = () => {
     if (prevActiveChatRef.current !== activeChat) {
       shouldScrollOnChatChange.current = true;
       prevActiveChatRef.current = activeChat;
+      setMessages([]);
+      setHasMoreMessages(true);
+      setOldestMessageRef(null);
+      setIsInitialLoad(true);
+      isFirstSnapshot.current = true;
     }
   }, [activeChat]);
 
@@ -89,8 +136,21 @@ const Chats = () => {
     const el = chatContainerRef.current;
     if (!el) return;
 
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    const handleScroll = () => {
+      const threshold = 80;
+      const isAtBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+      setShowScrollBtn(!isAtBottom);
+    };
 
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     if (isNearBottom) {
       scrollToBottom("smooth");
     } else {
@@ -108,18 +168,159 @@ const Chats = () => {
         });
       });
     };
-
-    if (shouldScrollOnChatChange.current || isInitialLoad.current) {
+    if (shouldScrollOnChatChange.current || isInitialLoad) {
       scrollToLatest();
-      isInitialLoad.current = false;
+      setIsInitialLoad(false);
     }
   }, [messages, activeChat]);
 
   useEffect(() => {
-    const el = chatContainerRef.current;
-    if (!el) return;
-    handleScroll();
-  }, [messages, activeChat]);
+    if (!activeChat || !authId) return;
+
+    setActiveChatLoading(true);
+    setMessages([]);
+    setHasMoreMessages(true);
+    setOldestMessageRef(null);
+    isFirstSnapshot.current = true;
+
+    if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
+    messageSubscriptionsRef.current.forEach((unsub) => unsub());
+    messageSubscriptionsRef.current.clear();
+
+    const unsubscribe = listenLatestMessages(
+      activeChat,
+      MESSAGES_PAGE_SIZE,
+      (newMessages, paginationInfo) => {
+        if (isFirstSnapshot.current) {
+          setMessages(newMessages);
+          isFirstSnapshot.current = false;
+        } else {
+          setMessages((prev) => mergeMessages(prev, newMessages));
+        }
+        setHasMoreMessages(paginationInfo.hasMore);
+        setOldestMessageRef(paginationInfo.firstDoc);
+        setActiveChatLoading(false);
+
+        if (newMessages.length > 0) {
+          markAsSeen(authId, activeChat, userId);
+        }
+
+        newMessages.forEach((msg) => {
+          if (!messageSubscriptionsRef.current.has(msg.id)) {
+            const unsubMsg = listenMessageUpdate(
+              activeChat,
+              msg.id,
+              (updatedMsg) => {
+                if (updatedMsg) {
+                  updateSingleMessage(updatedMsg);
+                } else {
+                  removeMessage(msg.id);
+                }
+              },
+            );
+            messageSubscriptionsRef.current.set(msg.id, unsubMsg);
+          }
+        });
+      },
+    );
+
+    unsubscribeMessagesRef.current = unsubscribe;
+
+    return () => {
+      if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
+      messageSubscriptionsRef.current.forEach((unsub) => unsub());
+      messageSubscriptionsRef.current.clear();
+    };
+  }, [
+    activeChat,
+    authId,
+    userId,
+    mergeMessages,
+    updateSingleMessage,
+    removeMessage,
+  ]);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMoreMessages || !oldestMessageRef || !activeChat)
+      return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const {
+        messages: olderMessages,
+        lastDoc,
+        hasMore,
+      } = await loadOlderMessages(
+        activeChat,
+        oldestMessageRef,
+        MESSAGES_PAGE_SIZE,
+      );
+
+      if (olderMessages.length > 0) {
+        setMessages((prev) => {
+          const combined = [...olderMessages, ...prev];
+          const unique = Array.from(
+            new Map(combined.map((msg) => [msg.id, msg])).values(),
+          );
+          unique.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          return unique;
+        });
+        setHasMoreMessages(hasMore);
+        setOldestMessageRef(lastDoc);
+
+        olderMessages.forEach((msg) => {
+          if (!messageSubscriptionsRef.current.has(msg.id)) {
+            const unsubMsg = listenMessageUpdate(
+              activeChat,
+              msg.id,
+              (updatedMsg) => {
+                if (updatedMsg) {
+                  updateSingleMessage(updatedMsg);
+                } else {
+                  removeMessage(msg.id);
+                }
+              },
+            );
+            messageSubscriptionsRef.current.set(msg.id, unsubMsg);
+          }
+        });
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+      toast.error("Failed to load older messages");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    activeChat,
+    isLoadingMore,
+    hasMoreMessages,
+    oldestMessageRef,
+    updateSingleMessage,
+    removeMessage,
+  ]);
+
+  const handleChatScroll = useCallback(
+    (e) => {
+      const element = e.target;
+      if (element.scrollTop <= 100 && !isLoadingMore && hasMoreMessages) {
+        const previousScrollHeight = element.scrollHeight;
+        const previousScrollTop = element.scrollTop;
+
+        loadMoreMessages().then(() => {
+          setTimeout(() => {
+            const newScrollHeight = element.scrollHeight;
+            const heightDiff = newScrollHeight - previousScrollHeight;
+            element.scrollTop = previousScrollTop + heightDiff;
+          }, 100);
+        });
+      }
+    },
+    [hasMoreMessages, isLoadingMore, loadMoreMessages],
+  );
 
   useEffect(() => {
     if (!authId) return;
@@ -131,20 +332,6 @@ const Chats = () => {
       setShowDMs(true);
     });
   }, [authId]);
-
-  useEffect(() => {
-    setMessages([]);
-    if (!activeChat || !authId) return;
-    setActiveChatLoading(true);
-    const unsub = listenMessages(activeChat, (data) => {
-      setMessages(data);
-      setActiveChatLoading(false);
-      if (data.length > 0) {
-        markAsSeen(authId, activeChat, userId);
-      }
-    });
-    return () => unsub();
-  }, [activeChat, authId]);
 
   useEffect(() => {
     setUsersLoading(true);
@@ -170,28 +357,22 @@ const Chats = () => {
 
   const { groupChats, directChats, usersWithoutChat } = useMemo(() => {
     const keyword = debounceSearch.toLowerCase();
-
     const filterFn = (...fields) =>
       !keyword ||
       fields.some((field) => field?.toLowerCase().includes(keyword));
-
     const group = chats.filter((c) => c.type === "group");
     const direct = chats.filter((c) => c.type === "private");
     const existing = direct.flatMap((c) =>
       (c.members || []).filter((id) => id !== userId),
     );
-
     const remaining = allUsers.filter(
       (u) => u.docId !== userId && !existing.includes(u.docId),
     );
-
     return {
       groupChats: group.filter((c) => filterFn(c.name)),
-
       directChats: direct.filter((c) => {
         const otherId = c.members?.find((id) => id !== userId);
         const otherUser = userMap[otherId];
-
         return filterFn(
           otherUser?.fullName,
           otherUser?.email,
@@ -199,7 +380,6 @@ const Chats = () => {
           otherId,
         );
       }),
-
       usersWithoutChat: remaining.filter((u) =>
         filterFn(u.fullName, u.email, u.name, u.docId),
       ),
@@ -208,21 +388,17 @@ const Chats = () => {
 
   const activeChatData = useMemo(() => {
     if (!activeChat) return null;
-
     return chats.find((c) => (c.chatId || c.id) === activeChat);
   }, [activeChat, chats]);
 
   const activeChatUser = useMemo(() => {
     if (!activeChatData || activeChatData.type !== "private") return null;
-
     const otherId = activeChatData.members?.find((id) => id !== userId);
-
     return userMap[otherId];
   }, [activeChatData, userMap, userId]);
 
   const activeChatMemberAuthIds = useMemo(() => {
     if (!activeChatData?.members?.length || !allUsers?.length) return [];
-
     return activeChatData.members
       .map((memberDocId) => {
         const matchedUser = allUsers.find((user) => user.docId === memberDocId);
@@ -240,24 +416,8 @@ const Chats = () => {
   const scrollToBottom = (behavior = "smooth") => {
     const el = chatContainerRef.current;
     if (!el) return;
-
-    el.scrollTo({
-      top: el.scrollHeight,
-      behavior,
-    });
-
+    el.scrollTo({ top: el.scrollHeight, behavior });
     setShowScrollBtn(false);
-  };
-
-  const handleScroll = () => {
-    const el = chatContainerRef.current;
-    if (!el) return;
-
-    const threshold = 80;
-    const isAtBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
-
-    setShowScrollBtn(!isAtBottom);
   };
 
   const isEmpty = (html) => {
@@ -268,7 +428,6 @@ const Chats = () => {
 
   const handleSend = async () => {
     if (isEmpty(text) || !activeChat) return;
-
     const tempText = text;
     setText("");
     const optimisticId = `optimistic-${Date.now()}`;
@@ -276,10 +435,11 @@ const Chats = () => {
       id: optimisticId,
       text: tempText,
       senderId: userId,
-      createdAt: new Date(),
+      createdAt: Date.now(),
       isOptimistic: true,
     };
     setMessages((prev) => [...prev, optimisticMessage]);
+
     try {
       const realId = await sendMessage(
         activeChat,
@@ -288,21 +448,27 @@ const Chats = () => {
         authId,
         activeChatMemberAuthIds,
       );
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === optimisticId
-            ? {
-                ...m,
-                id: realId,
-                isOptimistic: false,
-              }
-            : m,
-        ),
-      );
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== optimisticId);
+        const newMsg = {
+          ...optimisticMessage,
+          id: realId,
+          isOptimistic: false,
+        };
+        return [...filtered, newMsg];
+      });
+      const unsubMsg = listenMessageUpdate(activeChat, realId, (updatedMsg) => {
+        if (updatedMsg) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === realId ? updatedMsg : m)),
+          );
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== realId));
+        }
+      });
+      messageSubscriptionsRef.current.set(realId, unsubMsg);
     } catch (err) {
       toast.error("Message failed");
-
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, isFailed: true } : m)),
       );
@@ -314,7 +480,6 @@ const Chats = () => {
     const existingChat = directChats.find((c) =>
       c.members?.includes(targetUserId),
     );
-
     if (existingChat) {
       setParams({ chatId: existingChat.chatId || existingChat.id });
       setStartChatLoading(false);
@@ -337,10 +502,8 @@ const Chats = () => {
 
   const handleEdit = async () => {
     if (!editingMessage) return;
-
     try {
       await editMessage(activeChat, editingMessage.id, text);
-
       setEditingMessage(null);
       setText("");
     } catch (err) {
@@ -350,35 +513,30 @@ const Chats = () => {
   };
 
   const formatDateLabel = (date) => {
-    let msgDate;
-
-    if (date?.toDate) {
-      msgDate = date.toDate();
-    } else {
-      msgDate = new Date(date);
-    }
-
+    let msgDate = date?.toDate ? date.toDate() : new Date(date);
     const today = new Date();
-
     const isToday = msgDate.toDateString() === today.toDateString();
-
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
-
     const isYesterday = msgDate.toDateString() === yesterday.toDateString();
-
     if (isToday) return "Today";
     if (isYesterday) return "Yesterday";
-
     return msgDate.toLocaleDateString("en-GB");
   };
+
+
+  const normalizeDate = (t) => {
+    if (!t) return new Date();
+    if (typeof t === "number") return new Date(t);
+    if (t.toDate) return t.toDate();
+    return new Date(t);
+  };
+  
   const groupedMessages = useMemo(() => {
     return allMessages.reduce((groups, msg) => {
-      const label = formatDateLabel(msg.createdAt);
-
+      const label = formatDateLabel(normalizeDate(msg.createdAt));
       if (!groups[label]) groups[label] = [];
       groups[label].push(msg);
-
       return groups;
     }, {});
   }, [allMessages]);
@@ -607,7 +765,17 @@ const Chats = () => {
                 </>
               )}
             </div>
-            <div className="chat-messages" ref={chatContainerRef}>
+            <div
+              className="chat-messages"
+              ref={chatContainerRef}
+              onScroll={handleChatScroll}
+            >
+              {isLoadingMore && (
+                <div className="loading-more-indicator">
+                  <Loader size="20" />
+                  <span>Loading older messages...</span>
+                </div>
+              )}
               {Object.entries(groupedMessages).map(([dateLabel, msgs]) => (
                 <div className="chat-messages-date-contain" key={dateLabel}>
                   <div className="chat-date-label">
@@ -836,13 +1004,13 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
         "group",
         groupName,
       );
-      toast.success("Group Created Successfuly.");
+      toast.success("Group Created Successfully.");
+      onClose();
     } catch (err) {
       console.log("Failed to create group:", err);
-      toast.success("Failed to create group,Try again later.");
+      toast.error("Failed to create group, try again later.");
     } finally {
       setLoading(false);
-      onClose();
     }
   };
 
@@ -975,6 +1143,7 @@ const DeletConfirm = ({ onClose, onDelete }) => {
     try {
       setLoading(true);
       await onDelete();
+      onClose();
     } catch (error) {
       console.log(error);
     } finally {

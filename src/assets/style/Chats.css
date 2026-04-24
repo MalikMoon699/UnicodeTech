@@ -155,14 +155,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10;
 }
 
 .chat-date-label > p {
   font-size: 12px;
-  background: var(--primary-hover);
-  color: var(--primary);
-  border: 1px solid var(--primary);
-  padding:4px 22px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 6px 20px;
   width: fit-content;
   border-radius: 15px;
 }
@@ -244,7 +245,7 @@
 
 .chat-message-row.me .chat-bubble {
   background: var(--border);
-  color: white;
+  color: var(--card-foreground);
   border-top-right-radius: 6px;
 }
 
