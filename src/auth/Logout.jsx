@@ -23,7 +23,7 @@ const Logout = ({ onClose }) => {
         onClick={(e) => {
           e.stopPropagation();
         }}
-        className="model-content logout-modal"
+        className="model-content-container logout-modal"
       >
         <div className="logout-icon">
           <TriangleAlert size={48} />

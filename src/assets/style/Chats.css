@@ -10,6 +10,7 @@
   background: var(--secondary);
   border-right: 1px solid var(--border);
   padding: 12px;
+  overflow-y: auto;
 }
 
 .chat-search {
@@ -58,12 +59,24 @@
 }
 
 .chat-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 4px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.unread-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  padding: 1.5px 5px;
+  border-radius: 50%;
 }
 
 .chat-item:hover {
@@ -156,6 +169,14 @@
   flex-direction: column;
 }
 
+.sending-text {
+  font-size: 7px;
+  margin-bottom: -11px;
+  color: var(--muted-foreground);
+  width: 100%;
+  text-align: end;
+}
+
 .chat-username {
   font-size: 12px;
   font-weight: 500;
@@ -224,12 +245,65 @@
   opacity: 0.7;
 }
 
+.edited-label {
+  margin-left: 3px;
+  font-size: 9px;
+}
+
 .chat-time.group {
   position: absolute;
   bottom: 4px;
   right: 8px;
 }
 
+.message-action-menu {
+  background: var(--card);
+  box-shadow: 0px 0px 8px var(--shadow);
+  width: fit-content;
+  min-width: 150px;
+  max-width: 80vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+}
+
+.message-action-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  width: 100%;
+  gap: 8px;
+  background: var(--background);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  padding: 8px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.message-action-menu-btn:hover .icon {
+  transform: scale(1.05);
+}
+
+.message-action-menu-btn .icon {
+  padding: 3px;
+  border-radius: 4px;
+}
+
+.message-action-menu-btn.edit:hover .icon {
+  color: var(--status-approved);
+  background-color: #22c55e29;
+}
+
+.message-action-menu-btn.delete:hover .icon {
+  background-color: var(--status-rejected-hover);
+  color: var(--status-rejected);
+}
 /* ============== User Hover Style ============== */
 .portal-tooltip {
   background: var(--card);
@@ -350,11 +424,11 @@
 }
 
 .group-create-item:hover {
-  background-color: #f3f4f6;
+  background-color: var(--muted);
 }
 
 .group-create-item-active {
-  background-color: #e5e7eb;
+  background-color: var(--background);
 }
 
 .group-create-left {
@@ -376,12 +450,12 @@
 .group-create-name {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--card-foreground);
 }
 
 .group-create-username {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--muted-foreground);
 }
 
 .group-create-right {
@@ -392,14 +466,14 @@
   appearance: none;
   width: 22px;
   height: 22px;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--border);
   border-radius: 50%;
   cursor: pointer;
   position: relative;
 }
 
 .group-create-checkbox:checked {
-  border-color: #0f172a;
+  border-color: var(--card-foreground);
   background-color: #0f172a;
 }
 

@@ -10,6 +10,7 @@ import {
   deleteDoc,
   getDoc,
   where,
+  increment,getDocs
 } from "firebase/firestore";
 import { db } from "../utils/FirebaseConfig";
 import { generateCustomId } from "../utils/helper";
@@ -45,32 +46,76 @@ export const createChat = async (
   return customId;
 };
 
-export const sendMessage = async (chatId, message, senderId) => {
-  const customMsgId = await generateCustomId("messages");
+const storeMessageData = async (
+  chatId,
+  message,
+  senderId,
+  senderAuthId,
+  activeChatMemberAuthIds,
+) => {
+  try {
+    const chatRef = doc(db, "chats", chatId);
+    const updates = activeChatMemberAuthIds.map(async (authId) => {
+      const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
 
-  const msgRef = doc(db, "chats", chatId, "messages", customMsgId);
+      if (authId === senderAuthId) {
+        return updateDoc(userChatRef, {
+          unreadCount: 0,
+          lastSeen: serverTimestamp(),
+        });
+      } else {
+        return updateDoc(userChatRef, {
+          unreadCount: increment(1),
+        });
+      }
+    });
+    await Promise.all(updates);
+    await updateDoc(chatRef, {
+      lastMessage: {
+        text: message,
+        senderId,
+        createdAt: serverTimestamp(),
+      },
+    });
+  } catch (error) {
+    console.error("storeMessageData error:", error.message);
+  }
+};
 
-  const msg = {
-    id: customMsgId,
-    text: message,
-    senderId,
-    createdAt: serverTimestamp(),
-    type: "text",
-    isEdit: false,
-    seenBy: [senderId],
-  };
-
-  await setDoc(msgRef, msg);
-
-  await updateDoc(doc(db, "chats", chatId), {
-    lastMessage: {
+export const sendMessage = async (
+  chatId,
+  message,
+  senderId,
+  senderAuthId,
+  activeChatMemberAuthIds,
+) => {
+  try {
+    const customMsgId = await generateCustomId("messages");
+    const msgRef = doc(db, "chats", chatId, "messages", customMsgId);
+    const msg = {
+      id: customMsgId,
       text: message,
       senderId,
       createdAt: serverTimestamp(),
-    },
-  });
+      type: "text",
+      isEdit: false,
+      seenBy: [senderId],
+    };
 
-  return customMsgId;
+    await setDoc(msgRef, msg);
+    storeMessageData(
+      chatId,
+      message,
+      senderId,
+      senderAuthId,
+      activeChatMemberAuthIds,
+    );
+
+    return customMsgId;
+  } catch (err) {
+    console.error("sendMessage error:", err.message);
+    throw err;
+  }
 };
 
 export const listenMessages = (chatId, callback) => {
@@ -127,13 +172,31 @@ export const listenActiveUsers = (callback) => {
   });
 };
 
-export const markAsSeen = async (authId, chatId) => {
-  if (!authId || !chatId) return;
+export const markAsSeen = async (authId, chatId,userId) => {
+  try {
+    if (!authId || !chatId || !userId) return;
+    const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
 
-  await updateDoc(doc(db, "UserIndex", authId, "chats", chatId), {
-    lastSeen: serverTimestamp(),
-    unreadCount: 0,
-  });
+    await updateDoc(userChatRef, {
+      lastSeen: serverTimestamp(),
+      unreadCount: 0,
+    });
+
+    const messagesRef = collection(db, "chats", chatId, "messages");
+    const messagesSnap = await getDocs(messagesRef);
+    const updates = messagesSnap.docs.map(async (messageDoc) => {
+      const messageData = messageDoc.data();
+      if (messageData.seenBy?.includes(userId)) return;
+      await updateDoc(messageDoc.ref, {
+        seenBy: [...(messageData.seenBy || []), userId],
+      });
+    });
+
+    await Promise.all(updates);
+  } catch (error) {
+    console.error("markAsSeen error:", error.message);
+    throw error;
+  }
 };
 
 export const deleteMessage = async (chatId, messageId) => {
@@ -145,7 +208,7 @@ export const editMessage = async (chatId, messageId, newText) => {
 
   await updateDoc(msgRef, {
     text: newText,
-    isEdit: false,
+    isEdit: true,
     updatedAt: serverTimestamp(),
   });
 };

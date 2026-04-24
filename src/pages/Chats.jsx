@@ -6,18 +6,34 @@ import {
   markAsSeen,
   createChat,
   listenActiveUsers,
+  editMessage,
+  deleteMessage,
 } from "../services/chats.services";
 import "../assets/style/Chats.css";
-import { Search, Hash, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import {
+  Search,
+  Hash,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Edit,
+  Trash2,
+  TriangleAlert,
+  CircleX,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearchParams } from "react-router-dom";
-import { Input, ProfileImage, UserHoverPortable } from "../components/CustomComponents";
+import {
+  Input,
+  ProfileImage,
+  UserHoverPortable,
+} from "../components/CustomComponents";
 import { renderMessage, RichTextarea } from "../components/Custom.RichTextArea";
 import { IMAGES } from "../utils/constants";
 import { useDebounce } from "../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
-import { formateDateTime, formateTime } from "../utils/helper";
+import { formateTime } from "../utils/helper";
 
 const Chats = () => {
   const { currentUser } = useAuth();
@@ -38,21 +54,62 @@ const Chats = () => {
   const [params, setParams] = useSearchParams();
   const [activeChatLoading, setActiveChatLoading] = useState(false);
   const activeChat = params.get("chatId");
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const debounceSearch = useDebounce(search, 400);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
   const isInitialLoad = useRef(true);
-  const debounceSearch = useDebounce(search, 400);
+  const prevActiveChatRef = useRef(activeChat);
+  const shouldScrollOnChatChange = useRef(false);
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape" && activeChat) {
+        setParams({});
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [activeChat, setParams]);
+
+  useEffect(() => {
+    if (prevActiveChatRef.current !== activeChat) {
+      shouldScrollOnChatChange.current = true;
+      prevActiveChatRef.current = activeChat;
+    }
+  }, [activeChat]);
+
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+
+    if (isNearBottom) {
+      scrollToBottom("smooth");
+    } else {
+      setShowScrollBtn(true);
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (!messages.length) return;
-    if (isInitialLoad.current) {
+    const scrollToLatest = () => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           scrollToBottom("auto");
-          isInitialLoad.current = false;
+          shouldScrollOnChatChange.current = false;
         });
       });
+    };
+
+    if (shouldScrollOnChatChange.current || isInitialLoad.current) {
+      scrollToLatest();
+      isInitialLoad.current = false;
     }
   }, [messages, activeChat]);
 
@@ -81,7 +138,7 @@ const Chats = () => {
       setMessages(data);
       setActiveChatLoading(false);
     });
-    markAsSeen(authId, activeChat);
+    markAsSeen(authId, activeChat, userId);
     return () => unsub();
   }, [activeChat, authId]);
 
@@ -93,6 +150,12 @@ const Chats = () => {
       setShowStart(true);
     });
     return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
   }, []);
 
   const userMap = useMemo(() => {
@@ -153,8 +216,32 @@ const Chats = () => {
     return userMap[otherId];
   }, [activeChatData, userMap, userId]);
 
+  const activeChatMemberAuthIds = useMemo(() => {
+    if (!activeChatData?.members?.length || !allUsers?.length) return [];
+
+    return activeChatData.members
+      .map((memberDocId) => {
+        const matchedUser = allUsers.find((user) => user.docId === memberDocId);
+        return matchedUser?.id || null;
+      })
+      .filter(Boolean);
+  }, [activeChatData, allUsers]);
+
+  const allMessages = useMemo(() => {
+    return [...messages].sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    );
+  }, [messages]);
+
   const scrollToBottom = (behavior = "smooth") => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    const el = chatContainerRef.current;
+    if (!el) return;
+
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior,
+    });
+
     setShowScrollBtn(false);
   };
 
@@ -177,8 +264,45 @@ const Chats = () => {
 
   const handleSend = async () => {
     if (isEmpty(text) || !activeChat) return;
-    await sendMessage(activeChat, text, userId);
+
+    const tempText = text;
     setText("");
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      text: tempText,
+      senderId: userId,
+      createdAt: new Date(),
+      isOptimistic: true,
+    };
+    setMessages((prev) => [...prev, optimisticMessage]);
+    try {
+      const realId = await sendMessage(
+        activeChat,
+        tempText,
+        userId,
+        authId,
+        activeChatMemberAuthIds,
+      );
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticId
+            ? {
+                ...m,
+                id: realId,
+                isOptimistic: false,
+              }
+            : m,
+        ),
+      );
+    } catch (err) {
+      toast.error("Message failed");
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, isFailed: true } : m)),
+      );
+    }
   };
 
   const handleStartChat = async (targetUserId, targetauthId) => {
@@ -195,6 +319,30 @@ const Chats = () => {
     const id = await createChat([userId, targetUserId], [authId, targetauthId]);
     setParams({ chatId: id });
     setStartChatLoading(false);
+  };
+
+  const handleStartEdit = (msg) => {
+    setEditingMessage(msg);
+    setText(msg.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setText("");
+  };
+
+  const handleEdit = async () => {
+    if (!editingMessage) return;
+
+    try {
+      await editMessage(activeChat, editingMessage.id, text);
+
+      setEditingMessage(null);
+      setText("");
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to edit message");
+    }
   };
 
   return (
@@ -271,6 +419,9 @@ const Chats = () => {
                   >
                     <Hash size={16} />
                     <span>{chat.name || "group"}</span>
+                    {chat.unreadCount > 0 && (
+                      <span className="unread-badge">{chat.unreadCount}</span>
+                    )}
                   </div>
                 ))
               ) : (
@@ -419,7 +570,7 @@ const Chats = () => {
               )}
             </div>
             <div className="chat-messages" ref={chatContainerRef}>
-              {messages.map((msg) => {
+              {allMessages.map((msg) => {
                 const user = userMap[msg.senderId];
                 const isMe = msg.senderId === currentUser?.userId;
 
@@ -427,6 +578,15 @@ const Chats = () => {
                   <div
                     key={msg.id}
                     className={`chat-message-row ${isMe ? "me" : "other"}`}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (!isMe) return;
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        message: msg,
+                      });
+                    }}
                   >
                     {!isMe && (
                       <ProfileImage
@@ -442,6 +602,18 @@ const Chats = () => {
                             {user?.fullName || "N/A"}
                           </span>
                         </UserHoverPortable>
+                      )}
+                      {msg.isOptimistic && (
+                        <p className="sending-text">Sending...</p>
+                      )}
+
+                      {msg.isFailed && (
+                        <p
+                          style={{ color: "var(--status-rejected)" }}
+                          className="sending-text"
+                        >
+                          Failed to send
+                        </p>
                       )}
 
                       <div
@@ -462,6 +634,9 @@ const Chats = () => {
                           }
                         >
                           {formateTime(msg?.createdAt) || "N/A"}
+                          {msg.isEdit && (
+                            <span className="edited-label">(edited)</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -476,6 +651,44 @@ const Chats = () => {
                 );
               })}
               <div ref={messagesEndRef} />
+              {contextMenu && (
+                <div
+                  className="message-action-menu"
+                  style={{
+                    position: "fixed",
+                    top: contextMenu.y,
+                    left: contextMenu.x,
+                    zIndex: 1000,
+                  }}
+                  onMouseLeave={() => setContextMenu(null)}
+                >
+                  <button
+                    onClick={() => {
+                      handleStartEdit(contextMenu.message);
+                      setContextMenu(null);
+                    }}
+                    className="message-action-menu-btn edit"
+                  >
+                    <span className="icon">
+                      <Edit size={14} />
+                    </span>
+                    Edit
+                  </button>
+
+                  <button
+                    className="message-action-menu-btn delete"
+                    onClick={() => {
+                      setDeleteTarget(contextMenu.message);
+                      setContextMenu(null);
+                    }}
+                  >
+                    <span className="icon">
+                      <Trash2 size={14} />
+                    </span>
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
             <div className="chat-input">
               {showScrollBtn && (
@@ -490,11 +703,23 @@ const Chats = () => {
                   </span>
                 </button>
               )}
+              {deleteTarget && (
+                <DeletConfirm
+                  onClose={() => setDeleteTarget(null)}
+                  onDelete={async () => {
+                    await deleteMessage(activeChat, deleteTarget.id);
+                    setDeleteTarget(null);
+                  }}
+                />
+              )}
               <RichTextarea
                 value={text}
                 setValue={setText}
                 placeholder="Type a message..."
                 onSubmit={handleSend}
+                isEdit={!!editingMessage}
+                onEdit={handleEdit}
+                onCancelEdit={handleCancelEdit}
               />
             </div>
           </>
@@ -672,6 +897,64 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
               {loading ? "Creating..." : "Create Channel"}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DeletConfirm = ({ onClose, onDelete }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      await onDelete();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} className="model-overlay">
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        className="model-content-container logout-modal"
+      >
+        <div className="logout-icon">
+          <TriangleAlert size={48} />
+        </div>
+
+        <h2 className="logout-title">Delete Message?</h2>
+
+        <p className="logout-text">
+          Are you sure you want to delete this message?
+        </p>
+
+        <div className="logout-actions">
+          <button
+            className="logout-action-btn logout-action-primary"
+            onClick={onClose}
+          >
+            <span className="icon">
+              <CircleX />
+            </span>
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={loading}
+            className="logout-action-btn logout-action-secondary"
+          >
+            <span className="icon">
+              <Trash2 />
+            </span>
+            {loading ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </div>
     </div>

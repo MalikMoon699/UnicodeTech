@@ -7,6 +7,7 @@ import {
   Paperclip,
   SendHorizonal,
   Smile,
+  X,
 } from "lucide-react";
 import Loader from "./Loader";
 import { useTheme } from "../context/ThemeContext";
@@ -34,6 +35,7 @@ export const RichTextarea = ({
   isEdit = false,
   onSubmit = () => {},
   onEdit = () => {},
+  onCancelEdit = () => {},
 }) => {
   const { isEnterSubmit } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -307,13 +309,37 @@ export const RichTextarea = ({
         />
         <MentionComponent editor={editor} />
         {isEdit ? (
-          <button
-            className="rich-submit-btn"
-            disabled={isEmpty(value) || loading}
-            onClick={handleEdit}
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "end",
+              gap: "6px",
+            }}
           >
-            {loading ? <Loader color="#fff" size="12" /> : <Check size={18} />}
-          </button>
+            <button
+              style={{
+                color: "#fff",
+                background: "var(--status-rejected)",
+              }}
+              className="rich-submit-btn"
+              onClick={onCancelEdit}
+            >
+              <X size={18} />
+            </button>
+            <button
+              className="rich-submit-btn"
+              disabled={isEmpty(value) || loading}
+              onClick={handleEdit}
+            >
+              {loading ? (
+                <Loader color="#fff" size="12" />
+              ) : (
+                <Check size={18} />
+              )}
+            </button>
+          </div>
         ) : (
           <button
             className="rich-submit-btn"
