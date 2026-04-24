@@ -137,8 +137,10 @@ const Chats = () => {
     const unsub = listenMessages(activeChat, (data) => {
       setMessages(data);
       setActiveChatLoading(false);
+      if (data.length > 0) {
+        markAsSeen(authId, activeChat, userId);
+      }
     });
-    markAsSeen(authId, activeChat, userId);
     return () => unsub();
   }, [activeChat, authId]);
 
