@@ -57,6 +57,7 @@ export const sendMessage = async (chatId, message, senderId) => {
     createdAt: serverTimestamp(),
     type: "text",
     isEdit: false,
+    seenBy: [senderId],
   };
 
   await setDoc(msgRef, msg);

@@ -105,6 +105,9 @@ body {
   overflow-y: auto;
   margin-left: 260px;
   background-color: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-container {

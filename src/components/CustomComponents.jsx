@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+import { createPortal } from "react-dom";
 import "../assets/style/CustomComponents.css";
 import {
   Check,
@@ -643,7 +650,6 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
   const hoverRef = useRef(false);
   const isMe = userId === currentUser?.userId;
   const time = new Date();
-  
 
   useEffect(() => {
     if (!currentUser?.authId) return;
@@ -785,6 +791,216 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+
+export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [userChats, setUserChats] = useState([]);
+  const timerRef = useRef(null);
+  const hoverRef = useRef(false);
+  const triggerRef = useRef(null); 
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+
+  const isMe = userId === currentUser?.userId;
+  const time = new Date();
+  useEffect(() => {
+    if (!currentUser?.authId) return;
+
+    const unsub = listenUserChats(currentUser.authId, (data) => {
+      setUserChats(data);
+    });
+
+    return () => unsub();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (isMe) {
+      setData(currentUser);
+      setLoading(false);
+      return;
+    }
+    getData();
+  }, [userId, isMe, currentUser]);
+
+  const getData = async () => {
+    setLoading(true);
+    try {
+      const userData = await getUserByIdFromUserIndex(userId);
+      setData(userData);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateTooltipPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const tooltipWidth = 260;
+    const tooltipHeight = 200; 
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let top = rect.top - tooltipHeight - 8;
+    let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+    if (top < 0) {
+      top = rect.bottom + 8;
+    }
+
+    if (left < 0) {
+      left = 8;
+    }
+    if (left + tooltipWidth > viewportWidth) {
+      left = viewportWidth - tooltipWidth - 8;
+    }
+
+    setTooltipPosition({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (!show) return;
+
+    updateTooltipPosition();
+
+    window.addEventListener("scroll", updateTooltipPosition, true);
+    window.addEventListener("resize", updateTooltipPosition);
+
+    return () => {
+      window.removeEventListener("scroll", updateTooltipPosition, true);
+      window.removeEventListener("resize", updateTooltipPosition);
+    };
+  }, [show, updateTooltipPosition]);
+
+  const handleEnter = () => {
+    hoverRef.current = true;
+    timerRef.current = setTimeout(() => {
+      if (hoverRef.current) {
+        setShow(true);
+      }
+    }, delay);
+  };
+
+  const handleLeave = () => {
+    hoverRef.current = false;
+    clearTimeout(timerRef.current);
+    setTimeout(() => {
+      if (!hoverRef.current) {
+        setShow(false);
+      }
+    }, 100);
+  };
+
+  const handleDirectChat = async () => {
+    if (!userId || !currentUser) return;
+    try {
+      const existingChat = userChats.find(
+        (c) =>
+          c.type === "private" &&
+          c.members?.includes(userId) &&
+          c.members?.includes(currentUser.userId),
+      );
+
+      if (existingChat) {
+        navigate(`/chats?chatId=${existingChat.chatId || existingChat.id}`);
+        return;
+      }
+
+      const newChatId = await createChat(
+        [currentUser.userId, userId],
+        [currentUser.authId, data?.authId],
+      );
+
+      navigate(`/chats?chatId=${newChatId}`);
+    } catch (err) {
+      console.error("Direct chat error:", err);
+    }
+  };
+
+  const tooltipContent = show && (
+    <div
+      className="portal-tooltip"
+      style={{
+        position: "fixed",
+        top: tooltipPosition.top,
+        left: tooltipPosition.left,
+        maxWidth: "360px",
+        padding: "0px",
+        zIndex: 9999,
+      }}
+    >
+      {loading ? (
+        <div style={{ textAlign: "center" }}>
+          <Loader size="40" style={{ height: "193px", width: "350px" }} />
+        </div>
+      ) : data ? (
+        <div className="user-hover-content">
+          <div className="user-hover-user-info">
+            <ProfileImage
+              className="user-hover-image"
+              Image={data?.profileImage || IMAGES.PlaceHolder}
+            />
+            <div className="user-hover-user-info-container">
+              <p>{data?.fullName || "N/A"}</p>
+              <p>{data?.email || "N/A"}</p>
+            </div>
+          </div>
+          <div className="sidebar-divider" />
+          <div className="user-hover-bottom">
+            <p>
+              <span className="icon">
+                <Clock size={18} />
+              </span>{" "}
+              {formateTime(time)} local time
+            </p>
+            {isMe ? (
+              <button
+                onClick={() => navigate("/settings")}
+                className="user-hover-action-btn"
+              >
+                <span className="icon">
+                  <User />
+                </span>
+                Update Profile
+              </button>
+            ) : (
+              <button
+                onClick={handleDirectChat}
+                className="user-hover-action-btn"
+              >
+                <span className="icon">
+                  <MessageCircleMoreIcon size={20} />
+                </span>
+                Direct Chat
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: "center" }}>No data found.</div>
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      ref={triggerRef}
+      style={{ position: "relative", display: "inline-block" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      {children}
+      {show && createPortal(tooltipContent, document.body)}
     </div>
   );
 };

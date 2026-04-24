@@ -11,13 +11,13 @@ import "../assets/style/Chats.css";
 import { Search, Hash, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearchParams } from "react-router-dom";
-import { Input, ProfileImage, UserHover } from "../components/CustomComponents";
+import { Input, ProfileImage, UserHoverPortable } from "../components/CustomComponents";
 import { renderMessage, RichTextarea } from "../components/Custom.RichTextArea";
 import { IMAGES } from "../utils/constants";
 import { useDebounce } from "../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
-import { formateDateTime } from "../utils/helper";
+import { formateDateTime, formateTime } from "../utils/helper";
 
 const Chats = () => {
   const { currentUser } = useAuth();
@@ -54,13 +54,13 @@ const Chats = () => {
         });
       });
     }
-  }, [messages]);
+  }, [messages, activeChat]);
 
   useEffect(() => {
     const el = chatContainerRef.current;
     if (!el) return;
     handleScroll();
-  }, [messages]);
+  }, [messages, activeChat]);
 
   useEffect(() => {
     if (!authId) return;
@@ -422,29 +422,56 @@ const Chats = () => {
               {messages.map((msg) => {
                 const user = userMap[msg.senderId];
                 const isMe = msg.senderId === currentUser?.userId;
+
                 return (
                   <div
                     key={msg.id}
-                    style={{ flexDirection: isMe ? "row-reverse" : "row" }}
-                    className="chat-message-row"
+                    className={`chat-message-row ${isMe ? "me" : "other"}`}
                   >
-                    <ProfileImage
-                      Image={user?.ProfileImage || IMAGES.PlaceHolder}
-                      className="chat-avatar"
-                    />
-                    <div className="chat-bubble style-import">
+                    {!isMe && (
+                      <ProfileImage
+                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                        className="chat-avatar"
+                      />
+                    )}
+
+                    <div className="chat-bubble-wrapper">
                       {!isMe && activeChatData?.type === "group" && (
-                        <UserHover userId={user?.docId}>
-                          <span className="user-hover-child">
+                        <UserHoverPortable userId={user?.docId}>
+                          <span className="chat-username elepsis">
                             {user?.fullName || "N/A"}
                           </span>
-                        </UserHover>
+                        </UserHoverPortable>
                       )}
-                      <div>{renderMessage(msg.text)}</div>
-                      <p className="chat-bubble-time">
-                        {formateDateTime(msg?.createdAt) || "N/A"}
-                      </p>
+
+                      <div
+                        className={
+                          !isMe && activeChatData?.type === "group"
+                            ? "chat-bubble group"
+                            : "chat-bubble"
+                        }
+                      >
+                        <div className="chat-text style-import">
+                          {renderMessage(msg.text)}
+                        </div>
+                        <span
+                          className={
+                            !isMe && activeChatData?.type === "group"
+                              ? "chat-time group"
+                              : "chat-time"
+                          }
+                        >
+                          {formateTime(msg?.createdAt) || "N/A"}
+                        </span>
+                      </div>
                     </div>
+
+                    {isMe && (
+                      <ProfileImage
+                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                        className="chat-avatar"
+                      />
+                    )}
                   </div>
                 );
               })}
