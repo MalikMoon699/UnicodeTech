@@ -143,6 +143,30 @@
   overflow-y: auto;
 }
 
+.chat-messages-date-contain {
+  position: relative;
+}
+
+.chat-date-label {
+  position: sticky;
+  top: 0;
+  left: 0px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-date-label > p {
+  font-size: 12px;
+  background: var(--primary-hover);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding:4px 22px;
+  width: fit-content;
+  border-radius: 15px;
+}
+
 .chat-message-row {
   display: flex;
   align-items: flex-start;
@@ -243,6 +267,10 @@
 .chat-time {
   font-size: 10px;
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  margin-top: 2px;
 }
 
 .edited-label {

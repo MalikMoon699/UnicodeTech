@@ -20,6 +20,8 @@ import {
   Trash2,
   TriangleAlert,
   CircleX,
+  Check,
+  CheckCheck,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearchParams } from "react-router-dom";
@@ -347,6 +349,40 @@ const Chats = () => {
     }
   };
 
+  const formatDateLabel = (date) => {
+    let msgDate;
+
+    if (date?.toDate) {
+      msgDate = date.toDate();
+    } else {
+      msgDate = new Date(date);
+    }
+
+    const today = new Date();
+
+    const isToday = msgDate.toDateString() === today.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isYesterday = msgDate.toDateString() === yesterday.toDateString();
+
+    if (isToday) return "Today";
+    if (isYesterday) return "Yesterday";
+
+    return msgDate.toLocaleDateString("en-GB");
+  };
+  const groupedMessages = useMemo(() => {
+    return allMessages.reduce((groups, msg) => {
+      const label = formatDateLabel(msg.createdAt);
+
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(msg);
+
+      return groups;
+    }, {});
+  }, [allMessages]);
+
   return (
     <div className="chat-container">
       <div className="chat-sidebar">
@@ -572,86 +608,113 @@ const Chats = () => {
               )}
             </div>
             <div className="chat-messages" ref={chatContainerRef}>
-              {allMessages.map((msg) => {
-                const user = userMap[msg.senderId];
-                const isMe = msg.senderId === currentUser?.userId;
-
-                return (
-                  <div
-                    key={msg.id}
-                    className={`chat-message-row ${isMe ? "me" : "other"}`}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      if (!isMe) return;
-                      setContextMenu({
-                        x: e.clientX,
-                        y: e.clientY,
-                        message: msg,
-                      });
-                    }}
-                  >
-                    {!isMe && (
-                      <ProfileImage
-                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
-                        className="chat-avatar"
-                      />
-                    )}
-
-                    <div className="chat-bubble-wrapper">
-                      {!isMe && activeChatData?.type === "group" && (
-                        <UserHoverPortable userId={user?.docId}>
-                          <span className="chat-username elepsis">
-                            {user?.fullName || "N/A"}
-                          </span>
-                        </UserHoverPortable>
-                      )}
-                      {msg.isOptimistic && (
-                        <p className="sending-text">Sending...</p>
-                      )}
-
-                      {msg.isFailed && (
-                        <p
-                          style={{ color: "var(--status-rejected)" }}
-                          className="sending-text"
-                        >
-                          Failed to send
-                        </p>
-                      )}
-
-                      <div
-                        className={
-                          !isMe && activeChatData?.type === "group"
-                            ? "chat-bubble group"
-                            : "chat-bubble"
-                        }
-                      >
-                        <div className="chat-text style-import">
-                          {renderMessage(msg.text)}
-                        </div>
-                        <span
-                          className={
-                            !isMe && activeChatData?.type === "group"
-                              ? "chat-time group"
-                              : "chat-time"
-                          }
-                        >
-                          {formateTime(msg?.createdAt) || "N/A"}
-                          {msg.isEdit && (
-                            <span className="edited-label">(edited)</span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {isMe && (
-                      <ProfileImage
-                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
-                        className="chat-avatar"
-                      />
-                    )}
+              {Object.entries(groupedMessages).map(([dateLabel, msgs]) => (
+                <div className="chat-messages-date-contain" key={dateLabel}>
+                  <div className="chat-date-label">
+                    <p>{dateLabel}</p>
                   </div>
-                );
-              })}
+                  {msgs.map((msg) => {
+                    const user = userMap[msg.senderId];
+                    const isMe = msg.senderId === currentUser?.userId;
+                    const isSeenByOthers =
+                      isMe &&
+                      Array.isArray(msg?.seenBy) &&
+                      msg.seenBy.some((id) => id !== currentUser?.userId);
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`chat-message-row ${isMe ? "me" : "other"}`}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          if (!isMe) return;
+                          setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            message: msg,
+                          });
+                        }}
+                      >
+                        {!isMe && (
+                          <ProfileImage
+                            Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                            className="chat-avatar"
+                          />
+                        )}
+
+                        <div className="chat-bubble-wrapper">
+                          {!isMe && activeChatData?.type === "group" && (
+                            <UserHoverPortable userId={user?.docId}>
+                              <span className="chat-username elepsis">
+                                {user?.fullName || "N/A"}
+                              </span>
+                            </UserHoverPortable>
+                          )}
+                          {msg.isOptimistic && (
+                            <p className="sending-text">Sending...</p>
+                          )}
+
+                          {msg.isFailed && (
+                            <p
+                              style={{ color: "var(--status-rejected)" }}
+                              className="sending-text"
+                            >
+                              Failed to send
+                            </p>
+                          )}
+
+                          <div
+                            className={
+                              !isMe && activeChatData?.type === "group"
+                                ? "chat-bubble group"
+                                : "chat-bubble"
+                            }
+                          >
+                            <div className="chat-text style-import">
+                              {renderMessage(msg.text)}
+                            </div>
+                            <span
+                              style={{ justifyContent: isMe ? "end" : "" }}
+                              className={
+                                !isMe && activeChatData?.type === "group"
+                                  ? "chat-time group"
+                                  : "chat-time"
+                              }
+                            >
+                              {formateTime(msg?.createdAt) || "N/A"}
+                              {isMe && activeChatData?.type !== "group" && (
+                                <span
+                                  style={{ marginLeft: "4px" }}
+                                  className="icon"
+                                >
+                                  {isSeenByOthers ? (
+                                    <CheckCheck
+                                      color="var(--primary)"
+                                      size={14}
+                                    />
+                                  ) : (
+                                    <Check size={14} />
+                                  )}
+                                </span>
+                              )}
+                              {msg.isEdit && (
+                                <span className="edited-label">(edited)</span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isMe && (
+                          <ProfileImage
+                            Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                            className="chat-avatar"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
               <div ref={messagesEndRef} />
               {contextMenu && (
                 <div
