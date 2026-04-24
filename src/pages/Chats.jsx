@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   listenMessages,
   listenUserChats,
@@ -11,12 +11,13 @@ import "../assets/style/Chats.css";
 import { Search, Hash, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useSearchParams } from "react-router-dom";
-import { Input, ProfileImage } from "../components/CustomComponents";
+import { Input, ProfileImage, UserHover } from "../components/CustomComponents";
 import { renderMessage, RichTextarea } from "../components/Custom.RichTextArea";
 import { IMAGES } from "../utils/constants";
 import { useDebounce } from "../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
+import { formateDateTime } from "../utils/helper";
 
 const Chats = () => {
   const { currentUser } = useAuth();
@@ -37,7 +38,29 @@ const Chats = () => {
   const [params, setParams] = useSearchParams();
   const [activeChatLoading, setActiveChatLoading] = useState(false);
   const activeChat = params.get("chatId");
+  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const isInitialLoad = useRef(true);
   const debounceSearch = useDebounce(search, 400);
+
+  useEffect(() => {
+    if (!messages.length) return;
+    if (isInitialLoad.current) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom("auto");
+          isInitialLoad.current = false;
+        });
+      });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    handleScroll();
+  }, [messages]);
 
   useEffect(() => {
     if (!authId) return;
@@ -115,6 +138,36 @@ const Chats = () => {
       ),
     };
   }, [chats, allUsers, debounceSearch, userId, userMap]);
+
+  const activeChatData = useMemo(() => {
+    if (!activeChat) return null;
+
+    return chats.find((c) => (c.chatId || c.id) === activeChat);
+  }, [activeChat, chats]);
+
+  const activeChatUser = useMemo(() => {
+    if (!activeChatData || activeChatData.type !== "private") return null;
+
+    const otherId = activeChatData.members?.find((id) => id !== userId);
+
+    return userMap[otherId];
+  }, [activeChatData, userMap, userId]);
+
+  const scrollToBottom = (behavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+    setShowScrollBtn(false);
+  };
+
+  const handleScroll = () => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+
+    const threshold = 80;
+    const isAtBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+
+    setShowScrollBtn(!isAtBottom);
+  };
 
   const isEmpty = (html) => {
     const div = document.createElement("div");
@@ -339,11 +392,36 @@ const Chats = () => {
           <Loader />
         ) : (
           <>
-            <div className="chat-messages">
+            <div className="chat-topbar">
+              {activeChatData?.type === "group" ? (
+                <>
+                  <Hash size={18} />
+                  <div>
+                    <h4>{activeChatData?.name || "Unnamed Group"}</h4>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <ProfileImage
+                    Image={activeChatUser?.ProfileImage || IMAGES.PlaceHolder}
+                    className="chat-topbar-avatar"
+                    style={{ border: "none" }}
+                  />
+                  <div>
+                    <h4>
+                      {activeChatUser?.fullName ||
+                        activeChatUser?.email ||
+                        "Unknown User"}
+                    </h4>
+                    <p className="chat-topbar-sub">{activeChatUser?.email}</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="chat-messages" ref={chatContainerRef}>
               {messages.map((msg) => {
                 const user = userMap[msg.senderId];
                 const isMe = msg.senderId === currentUser?.userId;
-
                 return (
                   <div
                     key={msg.id}
@@ -355,14 +433,36 @@ const Chats = () => {
                       className="chat-avatar"
                     />
                     <div className="chat-bubble style-import">
-                      {renderMessage(msg.text)}
+                      {!isMe && activeChatData?.type === "group" && (
+                        <UserHover userId={user?.docId}>
+                          <span className="user-hover-child">
+                            {user?.fullName || "N/A"}
+                          </span>
+                        </UserHover>
+                      )}
+                      <div>{renderMessage(msg.text)}</div>
+                      <p className="chat-bubble-time">
+                        {formateDateTime(msg?.createdAt) || "N/A"}
+                      </p>
                     </div>
                   </div>
                 );
               })}
+              <div ref={messagesEndRef} />
             </div>
-
             <div className="chat-input">
+              {showScrollBtn && (
+                <button
+                  className="scroll-bottom-btn"
+                  onClick={() => {
+                    scrollToBottom("smooth");
+                  }}
+                >
+                  <span className="icon">
+                    <ChevronDown size={18} />
+                  </span>
+                </button>
+              )}
               <RichTextarea
                 value={text}
                 setValue={setText}
