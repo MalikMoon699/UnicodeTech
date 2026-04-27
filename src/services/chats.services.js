@@ -12,6 +12,7 @@ import {
   where,
   increment,
   getDocs,
+  writeBatch,
   limit,
   startAfter,
 } from "firebase/firestore";
@@ -49,42 +50,6 @@ export const createChat = async (
   return customId;
 };
 
-const storeMessageData = async (
-  chatId,
-  message,
-  senderId,
-  senderAuthId,
-  activeChatMemberAuthIds,
-) => {
-  try {
-    const chatRef = doc(db, "chats", chatId);
-    const updates = activeChatMemberAuthIds.map(async (authId) => {
-      const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
-
-      if (authId === senderAuthId) {
-        return updateDoc(userChatRef, {
-          unreadCount: 0,
-          lastSeen: serverTimestamp(),
-        });
-      } else {
-        return updateDoc(userChatRef, {
-          unreadCount: increment(1),
-        });
-      }
-    });
-    await Promise.all(updates);
-    await updateDoc(chatRef, {
-      lastMessage: {
-        text: message,
-        senderId,
-        createdAt: serverTimestamp(),
-      },
-    });
-  } catch (error) {
-    console.error("storeMessageData error:", error.message);
-  }
-};
-
 export const sendMessage = async (
   chatId,
   message,
@@ -94,8 +59,12 @@ export const sendMessage = async (
 ) => {
   try {
     const customMsgId = await generateCustomId("messages");
+
+    const batch = writeBatch(db);
+
     const msgRef = doc(db, "chats", chatId, "messages", customMsgId);
-    const msg = {
+
+    batch.set(msgRef, {
       id: customMsgId,
       text: message,
       senderId,
@@ -103,66 +72,85 @@ export const sendMessage = async (
       type: "text",
       isEdit: false,
       seenBy: [senderId],
-    };
+    });
 
-    await setDoc(msgRef, msg);
-    storeMessageData(
-      chatId,
-      message,
-      senderId,
-      senderAuthId,
-      activeChatMemberAuthIds,
-    );
+    const chatRef = doc(db, "chats", chatId);
+
+    batch.update(chatRef, {
+      lastMessage: {
+        text: message,
+        senderId,
+        createdAt: serverTimestamp(),
+      },
+    });
+
+    activeChatMemberAuthIds.forEach((authId) => {
+      const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
+
+      if (authId === senderAuthId) {
+        batch.update(userChatRef, {
+          unreadCount: 0,
+          lastSeen: serverTimestamp(),
+        });
+      } else {
+        batch.update(userChatRef, {
+          unreadCount: increment(1),
+        });
+      }
+    });
+
+    await batch.commit();
 
     return customMsgId;
   } catch (err) {
-    console.error("sendMessage error:", err.message);
+    console.error(err);
     throw err;
   }
 };
 
-// New: Listen to latest messages with real-time updates (pagination ready)
 export const listenLatestMessages = (chatId, limitCount = 30, callback) => {
   if (!chatId) return () => {};
-
-  // Query latest messages in descending order (newest first)
   const q = query(
     collection(db, "chats", chatId, "messages"),
     orderBy("createdAt", "desc"),
-    limit(limitCount)
+    limit(limitCount),
   );
 
-  return onSnapshot(q, (snapshot) => {
-    // Convert to ascending order for display (oldest to newest)
-    const messages = snapshot.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        _ref: doc, // Store reference for pagination
-      }))
-      .reverse(); // Reverse to get ascending order
+  return onSnapshot(
+    q,
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      const messages = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data(), _ref: doc }))
+        .reverse();
 
-    // Get the oldest message's document reference for pagination
-    const firstDoc = snapshot.docs[0]; // Since we reversed, the first in original order is oldest
-    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      const firstDoc = snapshot.docs[0];
+      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
 
-    callback(messages, {
-      hasMore: messages.length === limitCount,
-      firstDoc: firstDoc || null,
-      lastDoc: lastDoc || null,
-    });
-  });
+      callback(messages, {
+        hasMore: messages.length === limitCount,
+        firstDoc: firstDoc || null,
+        lastDoc: lastDoc || null,
+        fromCache: snapshot.metadata.fromCache,
+        docCount: snapshot.docs.length,
+      });
+    }
+  );
 };
 
-// New: Load older messages (non-realtime, for pagination)
-export const loadOlderMessages = async (chatId, lastVisibleDoc, limitCount = 30) => {
-  if (!chatId || !lastVisibleDoc) return { messages: [], lastDoc: null, hasMore: false };
+export const loadOlderMessages = async (
+  chatId,
+  lastVisibleDoc,
+  limitCount = 30,
+) => {
+  if (!chatId || !lastVisibleDoc)
+    return { messages: [], lastDoc: null, hasMore: false };
 
   const q = query(
     collection(db, "chats", chatId, "messages"),
     orderBy("createdAt", "desc"),
     startAfter(lastVisibleDoc),
-    limit(limitCount)
+    limit(limitCount),
   );
 
   const snapshot = await getDocs(q);
@@ -172,10 +160,10 @@ export const loadOlderMessages = async (chatId, lastVisibleDoc, limitCount = 30)
       ...doc.data(),
       _ref: doc,
     }))
-    .reverse(); // Reverse to ascending order
+    .reverse();
 
   const newLastDoc = snapshot.docs[snapshot.docs.length - 1];
-  
+
   return {
     messages,
     lastDoc: newLastDoc || null,
@@ -183,10 +171,9 @@ export const loadOlderMessages = async (chatId, lastVisibleDoc, limitCount = 30)
   };
 };
 
-// New: Listen to a single message for real-time updates (for editing/deleting in loaded pages)
 export const listenMessageUpdate = (chatId, messageId, callback) => {
   if (!chatId || !messageId) return () => {};
-  
+
   const msgRef = doc(db, "chats", chatId, "messages", messageId);
   return onSnapshot(msgRef, (doc) => {
     if (doc.exists()) {
@@ -195,12 +182,11 @@ export const listenMessageUpdate = (chatId, messageId, callback) => {
         ...doc.data(),
       });
     } else {
-      callback(null); // Message deleted
+      callback(null);
     }
   });
 };
 
-// Legacy function - kept for compatibility but not used in new implementation
 export const listenMessages = (chatId, callback) => {
   if (!chatId) return () => {};
 

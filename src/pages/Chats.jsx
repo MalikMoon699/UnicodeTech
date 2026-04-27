@@ -4,6 +4,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useLayoutEffect,
 } from "react";
 import {
   listenLatestMessages,
@@ -84,6 +85,9 @@ const Chats = () => {
   const unsubscribeMessagesRef = useRef(null);
   const messageSubscriptionsRef = useRef(new Map());
   const isFirstSnapshot = useRef(true);
+  const waitingForServerSnapshot = useRef(true);
+  const previousScrollHeightRef = useRef(0);
+  const previousScrollTopRef = useRef(0);
 
   const mergeMessages = useCallback(
     (existingMessages, newMessages, prepend = false) => {
@@ -147,14 +151,19 @@ const Chats = () => {
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    const el = chatContainerRef.current;
-    if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (isNearBottom) {
-      scrollToBottom("smooth");
-    } else {
-      setShowScrollBtn(true);
+
+  useLayoutEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    if (
+      previousScrollHeightRef.current > 0 &&
+      previousScrollTopRef.current > 0
+    ) {
+      const newScrollHeight = container.scrollHeight;
+      const heightDiff = newScrollHeight - previousScrollHeightRef.current;
+      container.scrollTop = previousScrollTopRef.current + heightDiff;
+      previousScrollHeightRef.current = 0;
+      previousScrollTopRef.current = 0;
     }
   }, [messages]);
 
@@ -174,71 +183,79 @@ const Chats = () => {
     }
   }, [messages, activeChat]);
 
-  useEffect(() => {
-    if (!activeChat || !authId) return;
+useEffect(() => {
+  if (!activeChat || !authId) return;
 
-    setActiveChatLoading(true);
-    setMessages([]);
-    setHasMoreMessages(true);
-    setOldestMessageRef(null);
-    isFirstSnapshot.current = true;
+  setActiveChatLoading(true);
+  setMessages([]);
+  setHasMoreMessages(true);
+  setOldestMessageRef(null);
+  isFirstSnapshot.current = true; 
+  waitingForServerSnapshot.current = true;
 
+  if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
+  messageSubscriptionsRef.current.forEach((unsub) => unsub());
+  messageSubscriptionsRef.current.clear();
+
+  const unsubscribe = listenLatestMessages(
+    activeChat,
+    MESSAGES_PAGE_SIZE, 
+    (newMessages, paginationInfo) => {
+      if (paginationInfo.fromCache && paginationInfo.docCount < MESSAGES_PAGE_SIZE) {
+        setActiveChatLoading(true);
+        return;
+      }
+
+      if (waitingForServerSnapshot.current) {
+        setMessages(newMessages);
+        waitingForServerSnapshot.current = false;
+        setActiveChatLoading(false);
+      } else {
+        setMessages((prev) => {
+          const prevOldest = prev[0]?.createdAt;
+          const newOldest = newMessages[0]?.createdAt;
+          const isPrepending = prevOldest && newOldest && newOldest < prevOldest;
+
+          if (isPrepending && chatContainerRef.current) {
+            const container = chatContainerRef.current;
+            previousScrollHeightRef.current = container.scrollHeight;
+            previousScrollTopRef.current = container.scrollTop;
+          }
+
+          const merged = mergeMessages(prev, newMessages);
+          return merged;
+        });
+      }
+
+      setHasMoreMessages(paginationInfo.hasMore);
+      setOldestMessageRef(paginationInfo.firstDoc);
+
+      if (newMessages.length > 0 && !waitingForServerSnapshot.current) {
+        markAsSeen(authId, activeChat, userId);
+      }
+
+      newMessages.forEach((msg) => {
+        if (!messageSubscriptionsRef.current.has(msg.id)) {
+          const unsubMsg = listenMessageUpdate(activeChat, msg.id, (updatedMsg) => {
+            if (updatedMsg) {
+              updateSingleMessage(updatedMsg);
+            } else {
+              removeMessage(msg.id);
+            }
+          });
+          messageSubscriptionsRef.current.set(msg.id, unsubMsg);
+        }
+      });
+    }
+  );
+
+  unsubscribeMessagesRef.current = unsubscribe;
+  return () => {
     if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
     messageSubscriptionsRef.current.forEach((unsub) => unsub());
     messageSubscriptionsRef.current.clear();
-
-    const unsubscribe = listenLatestMessages(
-      activeChat,
-      MESSAGES_PAGE_SIZE,
-      (newMessages, paginationInfo) => {
-        if (isFirstSnapshot.current) {
-          setMessages(newMessages);
-          isFirstSnapshot.current = false;
-        } else {
-          setMessages((prev) => mergeMessages(prev, newMessages));
-        }
-        setHasMoreMessages(paginationInfo.hasMore);
-        setOldestMessageRef(paginationInfo.firstDoc);
-        setActiveChatLoading(false);
-
-        if (newMessages.length > 0) {
-          markAsSeen(authId, activeChat, userId);
-        }
-
-        newMessages.forEach((msg) => {
-          if (!messageSubscriptionsRef.current.has(msg.id)) {
-            const unsubMsg = listenMessageUpdate(
-              activeChat,
-              msg.id,
-              (updatedMsg) => {
-                if (updatedMsg) {
-                  updateSingleMessage(updatedMsg);
-                } else {
-                  removeMessage(msg.id);
-                }
-              },
-            );
-            messageSubscriptionsRef.current.set(msg.id, unsubMsg);
-          }
-        });
-      },
-    );
-
-    unsubscribeMessagesRef.current = unsubscribe;
-
-    return () => {
-      if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
-      messageSubscriptionsRef.current.forEach((unsub) => unsub());
-      messageSubscriptionsRef.current.clear();
-    };
-  }, [
-    activeChat,
-    authId,
-    userId,
-    mergeMessages,
-    updateSingleMessage,
-    removeMessage,
-  ]);
+  };
+}, [activeChat, authId, userId, mergeMessages, updateSingleMessage, removeMessage]);
 
   const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMoreMessages || !oldestMessageRef || !activeChat)
@@ -735,7 +752,7 @@ const Chats = () => {
             <h2>UnicodeTech</h2>
             <p>Select a chat to start messaging</p>
           </div>
-        ) : activeChatLoading ? (
+        ) : activeChatLoading || waitingForServerSnapshot.current ? (
           <Loader />
         ) : (
           <>
@@ -773,7 +790,6 @@ const Chats = () => {
               {isLoadingMore && (
                 <div className="loading-more-indicator">
                   <Loader size="20" />
-                  <span>Loading older messages...</span>
                 </div>
               )}
               {Object.entries(groupedMessages).map(([dateLabel, msgs]) => (
