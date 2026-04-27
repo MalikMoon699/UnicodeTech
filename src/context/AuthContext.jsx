@@ -16,6 +16,8 @@ import { auth, db } from "../utils/FirebaseConfig";
 import { generateCustomId, generateSearchTokens } from "../utils/helper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getToken } from "dev-push-notification";
+import { Push_Notification_Api } from "../utils/constants";
 
 const AuthCtx = createContext(null);
 
@@ -204,7 +206,8 @@ export const AuthProvider = ({ children }) => {
 
     const { collection: col, docId } = indexSnap.data();
 
-    const userSnap = await getDoc(doc(db, col, docId));
+    const userRef = doc(db, col, docId);
+    const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) throw new Error("User not found");
 
@@ -212,12 +215,16 @@ export const AuthProvider = ({ children }) => {
 
     if (data.status !== "active") {
       await signOut(auth);
-
-      if (data.status === "pending") {
-        throw new Error("No show");
-      }
-
       throw new Error("No show");
+    }
+    const token = await getToken(Push_Notification_Api);
+    console.log("token---->", token);
+
+    if (token) {
+      await updateDoc(userRef, {
+        fcmToken: token,
+        fcmUpdatedAt: new Date(),
+      });
     }
 
     skipSyncRef.current = true;
@@ -226,6 +233,7 @@ export const AuthProvider = ({ children }) => {
       ...data,
       docId,
       roleCollection: col,
+      fcmToken: token,
     };
 
     setCurrentUser(finalUser);
@@ -233,6 +241,47 @@ export const AuthProvider = ({ children }) => {
 
     return finalUser;
   };
+
+  // const signIn = async ({ email, password }) => {
+  //   const res = await signInWithEmailAndPassword(auth, email, password);
+
+  //   const user = res.user;
+
+  //   const indexSnap = await getDoc(doc(db, "UserIndex", user.uid));
+
+  //   if (!indexSnap.exists()) throw new Error("User not found");
+
+  //   const { collection: col, docId } = indexSnap.data();
+
+  //   const userSnap = await getDoc(doc(db, col, docId));
+
+  //   if (!userSnap.exists()) throw new Error("User not found");
+
+  //   const data = userSnap.data();
+
+  //   if (data.status !== "active") {
+  //     await signOut(auth);
+
+  //     if (data.status === "pending") {
+  //       throw new Error("No show");
+  //     }
+
+  //     throw new Error("No show");
+  //   }
+
+  //   skipSyncRef.current = true;
+
+  //   const finalUser = {
+  //     ...data,
+  //     docId,
+  //     roleCollection: col,
+  //   };
+
+  //   setCurrentUser(finalUser);
+  //   setAuthAllow(true);
+
+  //   return finalUser;
+  // };
 
   const refresh = async () => {
     const user = auth.currentUser;

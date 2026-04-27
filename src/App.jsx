@@ -7,6 +7,8 @@ import NotFound from "./pages/NotFound.jsx";
 import Auth from "./auth/Auth.jsx";
 import Setting from "./pages/Settings.jsx";
 import Chats from "./pages/Chats.jsx";
+import { onMessageListener, initMessaging } from "dev-push-notification";
+import { Push_Notification_Api } from "./utils/constants.js";
 
 // ================= Admin Pages =================
 import AdminDashBoard from "./pages/admin/DashBoard.jsx";
@@ -29,10 +31,24 @@ import UserDayEndStatus from "./pages/user/DayEndStatus.jsx";
 
 import { useAuth } from "./context/AuthContext.jsx";
 import { usePresence } from "./utils/hooks/usePresence.js";
+import { useEffect } from "react";
 
 const App = () => {
-const {currentUser}=useAuth();
- usePresence(currentUser);
+  const { currentUser } = useAuth();
+  usePresence(currentUser);
+
+  useEffect(() => {
+    initMessaging(Push_Notification_Api);
+    const unsubscribe = onMessageListener((payload) => {
+      console.log("Notification received:", payload);
+      if (Notification.permission === "granted" && payload.notification) {
+        const { title, body, image } = payload.notification;
+        new Notification(title, { body, icon: image });
+      }
+    }, Push_Notification_Api);
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <Routes>
