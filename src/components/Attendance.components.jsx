@@ -47,11 +47,15 @@ export const AttenDanceCalender = ({
 
     if (isFuture) return "attendance-future";
 
-    if (!record) return "attendance-absent";
-
-    if (record.type === "leave") return "attendance-leave";
+    if (!record) return "attendance-no-record";
+    if (record.type === "leave") return "attendance-absent";
+    if (record.type === "leave" && record.status === "weekend")
+      return "attendance-leave-weekend";
+    if (record.type === "leave" && record.status === "byboss")
+      return "attendance-leave-boss";
+    if (record.type === "leave" && record.status === "leave")
+      return "attendance-leave";
     if (record.late) return "attendance-late";
-
     return "attendance-present";
   };
 
@@ -814,7 +818,7 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
               margin: "0px",
               padding: "0px",
               borderRadius: "0px 0px 8px 8px",
-              borderTop:"0px"
+              borderTop: "0px",
             }}
           >
             <div

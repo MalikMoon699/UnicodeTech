@@ -9,7 +9,8 @@ import {
   orderBy,
   limit,
   startAfter,
-  onSnapshot,getDocs
+  onSnapshot,
+  getDocs,
 } from "firebase/firestore";
 import { generateCustomId } from "../../utils/helper";
 
@@ -18,6 +19,11 @@ export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
     let status = "pending";
     if (type === "boss") status = "approved";
     if (type === "weekend") status = "approved";
+    
+    const leaveDateKeys = requestData.duration.map(
+      (item) => new Date(item.date).toISOString().split("T")[0],
+    );
+
     const dates = requestData.duration.map((item) => ({
       date: new Date(item.date).toISOString(),
       status,
@@ -30,6 +36,7 @@ export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
       users: type === "weekend" ? null : requestData.userIds,
       type,
       dates,
+      leaveDateKeys,
       reason: requestData.reason || "",
       reviewedBy: null,
       isAutoApproved,
