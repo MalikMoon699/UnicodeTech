@@ -151,7 +151,6 @@ const Chats = () => {
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
-
   useLayoutEffect(() => {
     const container = chatContainerRef.current;
     if (!container) return;
@@ -183,79 +182,94 @@ const Chats = () => {
     }
   }, [messages, activeChat]);
 
-useEffect(() => {
-  if (!activeChat || !authId) return;
+  useEffect(() => {
+    if (!activeChat || !authId) return;
 
-  setActiveChatLoading(true);
-  setMessages([]);
-  setHasMoreMessages(true);
-  setOldestMessageRef(null);
-  isFirstSnapshot.current = true; 
-  waitingForServerSnapshot.current = true;
+    setActiveChatLoading(true);
+    setMessages([]);
+    setHasMoreMessages(true);
+    setOldestMessageRef(null);
+    isFirstSnapshot.current = true;
+    waitingForServerSnapshot.current = true;
 
-  if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
-  messageSubscriptionsRef.current.forEach((unsub) => unsub());
-  messageSubscriptionsRef.current.clear();
-
-  const unsubscribe = listenLatestMessages(
-    activeChat,
-    MESSAGES_PAGE_SIZE, 
-    (newMessages, paginationInfo) => {
-      if (paginationInfo.fromCache && paginationInfo.docCount < MESSAGES_PAGE_SIZE) {
-        setActiveChatLoading(true);
-        return;
-      }
-
-      if (waitingForServerSnapshot.current) {
-        setMessages(newMessages);
-        waitingForServerSnapshot.current = false;
-        setActiveChatLoading(false);
-      } else {
-        setMessages((prev) => {
-          const prevOldest = prev[0]?.createdAt;
-          const newOldest = newMessages[0]?.createdAt;
-          const isPrepending = prevOldest && newOldest && newOldest < prevOldest;
-
-          if (isPrepending && chatContainerRef.current) {
-            const container = chatContainerRef.current;
-            previousScrollHeightRef.current = container.scrollHeight;
-            previousScrollTopRef.current = container.scrollTop;
-          }
-
-          const merged = mergeMessages(prev, newMessages);
-          return merged;
-        });
-      }
-
-      setHasMoreMessages(paginationInfo.hasMore);
-      setOldestMessageRef(paginationInfo.firstDoc);
-
-      if (newMessages.length > 0 && !waitingForServerSnapshot.current) {
-        markAsSeen(authId, activeChat, userId);
-      }
-
-      newMessages.forEach((msg) => {
-        if (!messageSubscriptionsRef.current.has(msg.id)) {
-          const unsubMsg = listenMessageUpdate(activeChat, msg.id, (updatedMsg) => {
-            if (updatedMsg) {
-              updateSingleMessage(updatedMsg);
-            } else {
-              removeMessage(msg.id);
-            }
-          });
-          messageSubscriptionsRef.current.set(msg.id, unsubMsg);
-        }
-      });
-    }
-  );
-
-  unsubscribeMessagesRef.current = unsubscribe;
-  return () => {
     if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
     messageSubscriptionsRef.current.forEach((unsub) => unsub());
     messageSubscriptionsRef.current.clear();
-  };
-}, [activeChat, authId, userId, mergeMessages, updateSingleMessage, removeMessage]);
+
+    const unsubscribe = listenLatestMessages(
+      activeChat,
+      MESSAGES_PAGE_SIZE,
+      (newMessages, paginationInfo) => {
+        if (
+          paginationInfo.fromCache &&
+          paginationInfo.docCount < MESSAGES_PAGE_SIZE
+        ) {
+          setActiveChatLoading(true);
+          return;
+        }
+
+        if (waitingForServerSnapshot.current) {
+          setMessages(newMessages);
+          waitingForServerSnapshot.current = false;
+          setActiveChatLoading(false);
+        } else {
+          setMessages((prev) => {
+            const prevOldest = prev[0]?.createdAt;
+            const newOldest = newMessages[0]?.createdAt;
+            const isPrepending =
+              prevOldest && newOldest && newOldest < prevOldest;
+
+            if (isPrepending && chatContainerRef.current) {
+              const container = chatContainerRef.current;
+              previousScrollHeightRef.current = container.scrollHeight;
+              previousScrollTopRef.current = container.scrollTop;
+            }
+
+            const merged = mergeMessages(prev, newMessages);
+            return merged;
+          });
+        }
+
+        setHasMoreMessages(paginationInfo.hasMore);
+        setOldestMessageRef(paginationInfo.firstDoc);
+
+        if (newMessages.length > 0 && !waitingForServerSnapshot.current) {
+          markAsSeen(authId, activeChat, userId);
+        }
+
+        newMessages.forEach((msg) => {
+          if (!messageSubscriptionsRef.current.has(msg.id)) {
+            const unsubMsg = listenMessageUpdate(
+              activeChat,
+              msg.id,
+              (updatedMsg) => {
+                if (updatedMsg) {
+                  updateSingleMessage(updatedMsg);
+                } else {
+                  removeMessage(msg.id);
+                }
+              },
+            );
+            messageSubscriptionsRef.current.set(msg.id, unsubMsg);
+          }
+        });
+      },
+    );
+
+    unsubscribeMessagesRef.current = unsubscribe;
+    return () => {
+      if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
+      messageSubscriptionsRef.current.forEach((unsub) => unsub());
+      messageSubscriptionsRef.current.clear();
+    };
+  }, [
+    activeChat,
+    authId,
+    userId,
+    mergeMessages,
+    updateSingleMessage,
+    removeMessage,
+  ]);
 
   const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMoreMessages || !oldestMessageRef || !activeChat)
@@ -541,14 +555,13 @@ useEffect(() => {
     return msgDate.toLocaleDateString("en-GB");
   };
 
-
   const normalizeDate = (t) => {
     if (!t) return new Date();
     if (typeof t === "number") return new Date(t);
     if (t.toDate) return t.toDate();
     return new Date(t);
   };
-  
+
   const groupedMessages = useMemo(() => {
     return allMessages.reduce((groups, msg) => {
       const label = formatDateLabel(normalizeDate(msg.createdAt));
@@ -1019,6 +1032,7 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
         membersAuthId,
         "group",
         groupName,
+        currentUser?.userId,
       );
       toast.success("Group Created Successfully.");
       onClose();

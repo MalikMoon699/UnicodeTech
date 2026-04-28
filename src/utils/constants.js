@@ -141,6 +141,16 @@ export const UserSidebarMenu = [
   },
 ];
 
+export const AttendanceHelp = [
+  { className: "attendance-no-record", Label: "No Found Attendance" },
+  { className: "attendance-present", Label: "Present" },
+  { className: "attendance-late", Label: "Late Attendance" },
+  { className: "attendance-absent", Label: "Absent" },
+  { className: "attendance-leave", Label: "At Leave" },
+  { className: "attendance-leave-boss", Label: "Leave By Office" },
+  { className: "attendance-leave-weekend", Label: "Weekend" },
+];
+
 export const Push_Notification_Api = import.meta.env.VITE_Push_Notification;
 
 export const limit = 2;

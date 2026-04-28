@@ -245,6 +245,11 @@
   cursor: pointer;
 }
 
+.attendance-no-record {
+  background: #f3f4f6c4;
+  color: #000000;
+}
+
 .attendance-present {
   background: #d1fae5;
   color: #065f46;
@@ -265,9 +270,20 @@
   color: #6b21a8;
 }
 
+.attendance-leave-weekend {
+  background: #beaeff;
+  color: #4c1d95;
+}
+
+.attendance-leave-boss {
+  background: #cffafe;
+  color: #0e7490;
+}
+
 .attendance-future {
   background: transparent;
   color: #9ca3af;
+  opacity: 0.6;
 }
 
 /* ===== AttendanceHover style ====== */

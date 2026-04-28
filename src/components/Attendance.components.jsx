@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useEffect } from "react";
+import React, { useRef, useState, useMemo, useEffect, useCallback } from "react";
 import "../assets/style/Attendance.css";
 import {
   ChevronDown,
@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDebounce } from "../utils/hooks/useDebounce";
 import { getUsersWithoutPaginationHelper } from "../services/admin/users.serveces";
 import { IMAGES } from "../utils/constants";
+import { createPortal } from "react-dom";
 
 export const AttenDanceCalender = ({
   loading,
@@ -44,11 +45,9 @@ export const AttenDanceCalender = ({
 
     const today = new Date();
     const isFuture = date > today;
-
     if (isFuture) return "attendance-future";
-
     if (!record) return "attendance-no-record";
-    if (record.type === "leave") return "attendance-absent";
+    if (record.type === "absent") return "attendance-absent";
     if (record.type === "leave" && record.status === "weekend")
       return "attendance-leave-weekend";
     if (record.type === "leave" && record.status === "byboss")
@@ -787,6 +786,7 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
               maxHeight: isVisible.textArea ? "500px" : "0px",
               margin: "0px",
               padding: "0px",
+              borderRadius: "0px",
             }}
           >
             <Input
@@ -925,6 +925,97 @@ const HidenSelector = ({
       <span className="icon">
         {value ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
       </span>
+    </div>
+  );
+};
+
+export const ContentHoverPortable = ({ onHover, children, delay = 300 }) => {
+  const [show, setShow] = useState(false);
+  const timerRef = useRef(null);
+  const hoverRef = useRef(false);
+  const triggerRef = useRef(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+
+  const updateTooltipPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const tooltipWidth = 260;
+    const tooltipHeight = 200;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let top = rect.top - tooltipHeight - 8;
+    let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+    if (top < 0) {
+      top = rect.bottom + 8;
+    }
+
+    if (left < 0) {
+      left = 8;
+    }
+    if (left + tooltipWidth > viewportWidth) {
+      left = viewportWidth - tooltipWidth - 8;
+    }
+
+    setTooltipPosition({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (!show) return;
+    updateTooltipPosition();
+    window.addEventListener("scroll", updateTooltipPosition, true);
+    window.addEventListener("resize", updateTooltipPosition);
+    return () => {
+      window.removeEventListener("scroll", updateTooltipPosition, true);
+      window.removeEventListener("resize", updateTooltipPosition);
+    };
+  }, [show, updateTooltipPosition]);
+
+  const handleEnter = () => {
+    hoverRef.current = true;
+    timerRef.current = setTimeout(() => {
+      if (hoverRef.current) {
+        setShow(true);
+      }
+    }, delay);
+  };
+
+  const handleLeave = () => {
+    hoverRef.current = false;
+    clearTimeout(timerRef.current);
+    setTimeout(() => {
+      if (!hoverRef.current) {
+        setShow(false);
+      }
+    }, 100);
+  };
+
+  const tooltipContent = show && (
+    <div
+      className="portal-tooltip"
+      style={{
+        position: "fixed",
+        top: tooltipPosition.top,
+        left: tooltipPosition.left,
+        maxWidth: "200px",
+        padding: "0px",
+        zIndex: 9999,
+      }}
+    >
+      {onHover}
+    </div>
+  );
+
+  return (
+    <div
+      ref={triggerRef}
+      style={{ position: "relative", display: "inline-block" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      {children}
+      {show && createPortal(tooltipContent, document.body)}
     </div>
   );
 };

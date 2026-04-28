@@ -4,8 +4,15 @@ import {
   Header,
   ProfileImage,
   StatesCard,
+  Tabs,
 } from "../../components/CustomComponents";
-import { Users, UserCheck, UserMinus, AlarmClock } from "lucide-react";
+import {
+  Users,
+  UserCheck,
+  UserMinus,
+  AlarmClock,
+  CircleQuestionMark,
+} from "lucide-react";
 import MyAttendance from "../../pages/user/Attendance";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -13,9 +20,12 @@ import {
   listenAttendanceStats,
   listenSelectedUserMonthly,
 } from "../../services/manager/attendance.services";
-import { IMAGES } from "../../utils/constants";
+import { AttendanceHelp, IMAGES } from "../../utils/constants";
 import Loader from "../../components/Loader";
-import { AttenDanceCalender } from "../../components/Attendance.components";
+import {
+  AttenDanceCalender,
+  ContentHoverPortable,
+} from "../../components/Attendance.components";
 
 const Attendance = () => {
   const [tab, setTab] = useState("my");
@@ -58,15 +68,15 @@ const Attendance = () => {
     if (!selectedUser || !userId || tab === "my") return;
     setCalenderLoading(true);
 
-   const unsub = listenSelectedUserMonthly(
-     selectedUser.userId,
-     selectedDate,
-     userId,
-     (data, isFirstLoad) => {
-       setCalendarData(data);
-       if (isFirstLoad) setCalenderLoading(false);
-     },
-   );
+    const unsub = listenSelectedUserMonthly(
+      selectedUser.userId,
+      selectedDate,
+      userId,
+      (data, isFirstLoad) => {
+        setCalendarData(data);
+        if (isFirstLoad) setCalenderLoading(false);
+      },
+    );
     return () => unsub && unsub();
   }, [selectedUser, selectedDate, userId, tab]);
 
@@ -75,14 +85,96 @@ const Attendance = () => {
       <Header
         title="Attendance"
         desc="Track your daily attendance"
-        isTab={true}
-        tabState={tab}
-        setTabState={setTab}
-        tabOptions={[
-          { label: "My", value: "my", icon: Users },
-          { label: "Users", value: "users", icon: Users },
-        ]}
-        tabOuterWidth="fit-content"
+        context={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "end",
+              gap: "8px",
+            }}
+          >
+            <button
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--card-foreground)",
+              }}
+            >
+              <ContentHoverPortable
+                onHover={
+                  <div
+                    style={{ width: "200px", maxWidth: "90vw", padding: "8px" }}
+                  >
+                    <h3 style={{}}>COLORS:</h3>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "start",
+                        justifyContent: "start",
+                        gap: "3px",
+                        marginTop: "6px",
+                      }}
+                    >
+                      {AttendanceHelp.map((i, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "start",
+                            gap: "3px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              height: "10px",
+                              width: "10px",
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "1px solid var(--border)",
+                            }}
+                            className={i?.className}
+                          >
+                            •
+                          </span>
+                          <p style={{}}>{i?.Label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                }
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "10px",
+                    gap: "2px",
+                  }}
+                  className="user-hover-child"
+                >
+                  <CircleQuestionMark size={16} />
+                  Help
+                </span>
+              </ContentHoverPortable>
+            </button>
+            <Tabs
+              tab={tab}
+              setTab={setTab}
+              options={[
+                { label: "My", value: "my", icon: Users },
+                { label: "Users", value: "users", icon: Users },
+              ]}
+              outerWidth="fit-content"
+            />
+          </div>
+        }
       />
       {tab === "my" ? (
         <MyAttendance isManager={true} />

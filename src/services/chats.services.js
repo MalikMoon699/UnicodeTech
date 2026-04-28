@@ -24,6 +24,7 @@ export const createChat = async (
   membersWithAuth,
   type = "private",
   name = "",
+  createdBy = "",
 ) => {
   const customId = await generateCustomId("chats");
   const chatRef = doc(db, "chats", customId);
@@ -32,8 +33,10 @@ export const createChat = async (
     type,
     members,
     name,
+    createdBy: type === "group" ? createdBy : null,
     createdAt: serverTimestamp(),
     lastMessage: null,
+    membersWithAuth,
   });
 
   for (const authId of membersWithAuth) {
@@ -48,6 +51,114 @@ export const createChat = async (
   }
 
   return customId;
+};
+
+export const getAuthIdByUserId = async (userId) => {
+  try {
+    const q = query(collection(db, "UserIndex"), where("docId", "==", userId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    return snapshot.docs[0].id;
+  } catch (error) {
+    console.error("Error fetching authId:", error);
+    return null;
+  }
+};
+
+export const UpdateGroup = async (
+  chatId,
+  { name, members, membersWithAuth },
+) => {
+  const chatRef = doc(db, "chats", chatId);
+
+  const chatSnap = await getDoc(chatRef);
+  if (!chatSnap.exists()) throw new Error("Chat not found");
+
+  const prevMembers = chatSnap.data().members || [];
+
+  const added = members.filter((m) => !prevMembers.includes(m));
+  const removed = prevMembers.filter((m) => !members.includes(m));
+
+  const batch = writeBatch(db);
+
+  batch.update(chatRef, {
+    name,
+    members,
+    membersWithAuth,
+  });
+
+  for (const authId of membersWithAuth) {
+    if (added.includes(authId)) {
+      const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
+      batch.set(userChatRef, {
+        chatId,
+        members,
+        lastSeen: null,
+        unreadCount: 0,
+      });
+    }
+  }
+
+  for (const authId of removed) {
+    const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
+    batch.delete(userChatRef);
+  }
+
+  await batch.commit();
+};
+
+export const DeleteGroup = async (chatId) => {
+  const messagesRef = collection(db, "chats", chatId, "messages");
+  const snapshot = await getDocs(messagesRef);
+  const batch = writeBatch(db);
+  snapshot.forEach((docItem) => {
+    batch.delete(docItem.ref);
+  });
+  await batch.commit();
+  await deleteDoc(doc(db, "chats", chatId));
+};
+
+export const LeaveGroup = async (chatId, userId,userAuthId) => {
+  const chatRef = doc(db, "chats", chatId);
+
+  const chatSnap = await getDoc(chatRef);
+  if (!chatSnap.exists()) return;
+
+  const data = chatSnap.data();
+
+  const members = data.members || [];
+  const membersWithAuth = data.membersWithAuth || [];
+
+  const updatedMembers = members.filter((m) => m !== userId);
+  const updatedMembersWithAuth = membersWithAuth.filter(
+    (m) => m !== userAuthId,
+  );
+
+  const batch = writeBatch(db);
+  batch.update(chatRef, {
+    members: updatedMembers,
+    membersWithAuth: updatedMembersWithAuth,
+  });
+
+  const userChatRef = doc(db, "UserIndex", userAuthId, "chats", chatId);
+  batch.delete(userChatRef);
+
+  await batch.commit();
+};
+
+export const getGroupUsersDetails = async (memberIds) => {
+  const users = [];
+
+  for (const id of memberIds) {
+    const userRef = doc(db, "UserIndex", id);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      users.push({ id, ...userSnap.data() });
+    }
+  }
+
+  return users;
 };
 
 export const sendMessage = async (
@@ -116,26 +227,22 @@ export const listenLatestMessages = (chatId, limitCount = 30, callback) => {
     limit(limitCount),
   );
 
-  return onSnapshot(
-    q,
-    { includeMetadataChanges: true },
-    (snapshot) => {
-      const messages = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data(), _ref: doc }))
-        .reverse();
+  return onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
+    const messages = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data(), _ref: doc }))
+      .reverse();
 
-      const firstDoc = snapshot.docs[0];
-      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    const firstDoc = snapshot.docs[0];
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
 
-      callback(messages, {
-        hasMore: messages.length === limitCount,
-        firstDoc: firstDoc || null,
-        lastDoc: lastDoc || null,
-        fromCache: snapshot.metadata.fromCache,
-        docCount: snapshot.docs.length,
-      });
-    }
-  );
+    callback(messages, {
+      hasMore: messages.length === limitCount,
+      firstDoc: firstDoc || null,
+      lastDoc: lastDoc || null,
+      fromCache: snapshot.metadata.fromCache,
+      docCount: snapshot.docs.length,
+    });
+  });
 };
 
 export const loadOlderMessages = async (

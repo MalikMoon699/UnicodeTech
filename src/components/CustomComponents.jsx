@@ -25,7 +25,12 @@ import { getUserByIdFromUserIndex } from "../services/admin/leaves.services";
 import { useAuth } from "../context/AuthContext";
 import { formateTime } from "../utils/helper";
 import { useNavigate } from "react-router";
-import { createChat, listenUserChats } from "../services/chats.services";
+import {
+  createChat,
+  getAuthIdByUserId,
+  listenUserChats,
+} from "../services/chats.services";
+import { toast } from "sonner";
 
 export const AutoResizeTextarea = ({
   label = "",
@@ -715,10 +720,10 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
         navigate(`/chats?chatId=${existingChat.chatId || existingChat.id}`);
         return;
       }
-
+      const authId = await getAuthIdByUserId(userId);
       const newChatId = await createChat(
         [currentUser.userId, userId],
-        [currentUser.authId, data?.authId],
+        [currentUser.authId, authId],
       );
 
       navigate(`/chats?chatId=${newChatId}`);
@@ -795,17 +800,17 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
   );
 };
 
-
 export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [creatingChat, setCreatingChat] = useState(false);
   const [data, setData] = useState(null);
   const [userChats, setUserChats] = useState([]);
   const timerRef = useRef(null);
   const hoverRef = useRef(false);
-  const triggerRef = useRef(null); 
+  const triggerRef = useRef(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
 
   const isMe = userId === currentUser?.userId;
@@ -847,7 +852,7 @@ export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const tooltipWidth = 260;
-    const tooltipHeight = 200; 
+    const tooltipHeight = 200;
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -904,6 +909,7 @@ export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
   const handleDirectChat = async () => {
     if (!userId || !currentUser) return;
     try {
+      setCreatingChat(true);
       const existingChat = userChats.find(
         (c) =>
           c.type === "private" &&
@@ -915,15 +921,18 @@ export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
         navigate(`/chats?chatId=${existingChat.chatId || existingChat.id}`);
         return;
       }
-
+      const authId = await getAuthIdByUserId(userId);
       const newChatId = await createChat(
         [currentUser.userId, userId],
-        [currentUser.authId, data?.authId],
+        [currentUser.authId, authId],
       );
 
       navigate(`/chats?chatId=${newChatId}`);
     } catch (err) {
+      toast.info("Chat creating wait.");
       console.error("Direct chat error:", err);
+    } finally {
+      setCreatingChat(false);
     }
   };
 
@@ -976,6 +985,8 @@ export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
             ) : (
               <button
                 onClick={handleDirectChat}
+                disabled={creatingChat}
+                style={{ cursor: creatingChat ? "progress" : "" }}
                 className="user-hover-action-btn"
               >
                 <span className="icon">

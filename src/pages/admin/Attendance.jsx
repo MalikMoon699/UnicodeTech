@@ -9,6 +9,7 @@ import "../../assets/style/Attendance.css";
 import { useAuth } from "../../context/AuthContext";
 import {
   AlarmClock,
+  CircleQuestionMark,
   UserCheck,
   UserMinus,
   Users,
@@ -18,9 +19,12 @@ import {
   listenAttendanceStats,
   listenSelectedUserMonthly,
 } from "../../services/admin/attendance.services";
-import { IMAGES } from "../../utils/constants";
+import { AttendanceHelp, IMAGES } from "../../utils/constants";
 import Loader from "../../components/Loader";
-import { AttenDanceCalender } from "../../components/Attendance.components";
+import {
+  AttenDanceCalender,
+  ContentHoverPortable,
+} from "../../components/Attendance.components";
 
 const Attendance = () => {
   const { currentUser } = useAuth();
@@ -69,7 +73,82 @@ const Attendance = () => {
 
   return (
     <div className="page-container">
-      <Header title="Attendance" desc="Track your daily attendance" />
+      <Header
+        title="Attendance"
+        desc="Track daily attendance"
+        context={
+          <button
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--card-foreground)",
+            }}
+          >
+            <ContentHoverPortable
+              onHover={
+                <div
+                  style={{ width: "200px", maxWidth: "90vw", padding: "8px" }}
+                >
+                  <h3 style={{}}>COLORS:</h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "start",
+                      justifyContent: "start",
+                      gap: "3px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {AttendanceHelp.map((i, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "start",
+                          gap: "3px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            height: "10px",
+                            width: "10px",
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "1px solid var(--border)"
+                          }}
+                          className={i?.className}
+                        >
+                          •
+                        </span>
+                        <p style={{}}>{i?.Label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              }
+            >
+              <span
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "10px",
+                  gap: "2px",
+                }}
+                className="user-hover-child"
+              >
+                <CircleQuestionMark size={16} />
+                Help
+              </span>
+            </ContentHoverPortable>
+          </button>
+        }
+      />
       <div
         style={{ margin: "30px 0px" }}
         className="custom-dashboard-stats-container"
