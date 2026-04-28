@@ -1,3 +1,4 @@
+import { handleSendNotification } from "../../utils/extensions/Notification.extensions";
 import { db } from "../../utils/FirebaseConfig";
 import {
   collection,
@@ -11,8 +12,8 @@ import {
   orderBy,
   limit as fblimit,
   onSnapshot,
+  getDocs,
 } from "firebase/firestore";
-
 
 export const checkIn = async ({ userId, lateReason = "" }) => {
   const now = new Date();
@@ -42,6 +43,17 @@ export const checkIn = async ({ userId, lateReason = "" }) => {
       checkOut: [],
     },
     createdAt: serverTimestamp(),
+  });
+
+  const adminSnap = await getDocs(collection(db, "Admins"));
+  const Admins = adminSnap.docs.map((doc) => doc.id);
+  console.log("Admins----->", Admins);
+  
+  handleSendNotification({
+    title: "Attendance",
+    body: "Check in",
+    link: "/attendance",
+    userIds: Admins,
   });
 };
 

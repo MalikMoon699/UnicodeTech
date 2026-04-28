@@ -11,13 +11,16 @@ import {
   setDoc,
   serverTimestamp,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../utils/FirebaseConfig";
 import { generateCustomId, generateSearchTokens } from "../utils/helper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { getToken } from "dev-push-notification";
-import { Push_Notification_Api } from "../utils/constants";
+import {
+  addFcmToken,
+  handleGetToken,
+} from "../utils/extensions/Notification.extensions";
 
 const AuthCtx = createContext(null);
 
@@ -197,34 +200,25 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async ({ email, password }) => {
     const res = await signInWithEmailAndPassword(auth, email, password);
-
     const user = res.user;
-
-    const indexSnap = await getDoc(doc(db, "UserIndex", user.uid));
-
+    const indexRef = doc(db, "UserIndex", user.uid);
+    const indexSnap = await getDoc(indexRef);
     if (!indexSnap.exists()) throw new Error("User not found");
-
     const { collection: col, docId } = indexSnap.data();
-
     const userRef = doc(db, col, docId);
     const userSnap = await getDoc(userRef);
-
     if (!userSnap.exists()) throw new Error("User not found");
-
     const data = userSnap.data();
-
     if (data.status !== "active") {
       await signOut(auth);
       throw new Error("No show");
     }
-    const token = await getToken(Push_Notification_Api);
-    console.log("token---->", token);
-
+    const token = await handleGetToken();
     if (token) {
-      await updateDoc(userRef, {
-        fcmToken: token,
-        fcmUpdatedAt: new Date(),
-      });
+      await Promise.all([
+        addFcmToken(userRef, token),
+        addFcmToken(indexRef, token),
+      ]);
     }
 
     skipSyncRef.current = true;
@@ -241,47 +235,6 @@ export const AuthProvider = ({ children }) => {
 
     return finalUser;
   };
-
-  // const signIn = async ({ email, password }) => {
-  //   const res = await signInWithEmailAndPassword(auth, email, password);
-
-  //   const user = res.user;
-
-  //   const indexSnap = await getDoc(doc(db, "UserIndex", user.uid));
-
-  //   if (!indexSnap.exists()) throw new Error("User not found");
-
-  //   const { collection: col, docId } = indexSnap.data();
-
-  //   const userSnap = await getDoc(doc(db, col, docId));
-
-  //   if (!userSnap.exists()) throw new Error("User not found");
-
-  //   const data = userSnap.data();
-
-  //   if (data.status !== "active") {
-  //     await signOut(auth);
-
-  //     if (data.status === "pending") {
-  //       throw new Error("No show");
-  //     }
-
-  //     throw new Error("No show");
-  //   }
-
-  //   skipSyncRef.current = true;
-
-  //   const finalUser = {
-  //     ...data,
-  //     docId,
-  //     roleCollection: col,
-  //   };
-
-  //   setCurrentUser(finalUser);
-  //   setAuthAllow(true);
-
-  //   return finalUser;
-  // };
 
   const refresh = async () => {
     const user = auth.currentUser;
@@ -304,10 +257,40 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setCurrentUser(null);
-    setAuthAllow(false);
-    navigate("/auth");
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const indexRef = doc(db, "UserIndex", user.uid);
+        const indexSnap = await getDoc(indexRef);
+
+        const token = await handleGetToken();
+        if (indexSnap.exists()) {
+          const { collection: col, docId } = indexSnap.data();
+          const userRef = doc(db, col, docId);
+          const removeToken = async (ref) => {
+            const snap = await getDoc(ref);
+            const data = snap.data();
+            const existing = data?.fcmTokens || [];
+            const updated = existing.filter((t) => t !== token);
+            await updateDoc(ref, {
+              fcmTokens: updated,
+              fcmUpdatedAt: new Date(),
+            });
+          };
+
+          if (token) {
+            await Promise.all([removeToken(indexRef), removeToken(userRef)]);
+          }
+        }
+      }
+
+      await signOut(auth);
+      setCurrentUser(null);
+      setAuthAllow(false);
+      navigate("/auth");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
   };
 
   return (

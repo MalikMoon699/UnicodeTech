@@ -32,19 +32,25 @@ import UserDayEndStatus from "./pages/user/DayEndStatus.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { usePresence } from "./utils/hooks/usePresence.js";
 import { useEffect } from "react";
+import { useRealtimeNotifications } from "./utils/hooks/useRealtimeNotifications.jsx";
 
 const App = () => {
   const { currentUser } = useAuth();
   usePresence(currentUser);
+   useRealtimeNotifications(currentUser);
 
   useEffect(() => {
     initMessaging(Push_Notification_Api);
-    const unsubscribe = onMessageListener((payload) => {
-      console.log("Notification received:", payload);
-      if (Notification.permission === "granted" && payload.notification) {
-        const { title, body, image } = payload.notification;
-        new Notification(title, { body, icon: image });
-      }
+    const unsubscribe = onMessageListener(async (payload) => {
+      console.log("Foreground notification received:", payload);
+      const { title, body, image } = payload.notification;
+      const link = payload.data?.clickUrl || "/";
+      const registration = await navigator.serviceWorker.ready;
+      registration.showNotification(title, {
+        body,
+        icon: image,
+        data: { clickUrl: link },
+      });
     }, Push_Notification_Api);
 
     return () => unsubscribe();

@@ -5,9 +5,7 @@ import { db } from "../FirebaseConfig";
 export const usePresence = (currentUser) => {
   useEffect(() => {
     if (!currentUser) return;
-
-    const userRef = doc(db, currentUser.roleCollection, currentUser.docId);
-
+    const userRef = doc(db, "UserIndex", currentUser?.authId);
     const goOnline = async () => {
       await updateDoc(userRef, {
         isOnline: true,

@@ -173,6 +173,7 @@ body {
 .model-content-container {
   padding: 15px;
   background-color: var(--card);
+  border-radius: 3px;
 }
 /* ------  toast ------ */
 [data-sonner-toast] {

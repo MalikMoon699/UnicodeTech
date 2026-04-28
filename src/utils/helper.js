@@ -135,3 +135,30 @@ export const formateTime = (date) => {
 
   return `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
 };
+
+export const getProperRoute = ({ role = "", route = "" }) => {
+  if (!route) return route;
+
+  const rolePrefixMap = {
+    admin: "/admin",
+    manager: "/manager",
+  };
+
+  const protectedRoutes = [
+    "dashboard",
+    "attendance",
+    "leaves",
+    "day-end-status",
+  ];
+
+  const normalizedRole = role?.toLowerCase();
+
+  if (protectedRoutes.includes(route)) {
+    const prefix = rolePrefixMap[normalizedRole];
+    if (prefix) {
+      return `${prefix}/${route}`;
+    }
+  }
+
+  return `/${route}`;
+};

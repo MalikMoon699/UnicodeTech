@@ -2,9 +2,11 @@ import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
+import { getProperRoute } from "../utils/helper";
 
 export const ProtectedRoute = ({ children, role = [] }) => {
   const { authAllow, currentUser, authLoading } = useAuth();
+
   if (authLoading) {
     return (
       <Loader
@@ -17,26 +19,27 @@ export const ProtectedRoute = ({ children, role = [] }) => {
 
   if (!authAllow) return <Navigate to="/auth" replace />;
 
-  if (
-    currentUser?.role === "admin" &&
-    window.location.pathname === "/dashboard"
-  ) {
-    return <Navigate to="/admin/dashboard" replace />;
-  } else if (
-    currentUser?.role === "manager" &&
-    window.location.pathname === "/dashboard"
-  ) {
-    return <Navigate to="/manager/dashboard" replace />;
+  const currentPath = window.location.pathname.replace(/^\/+/, "");
+
+  const properRoute = getProperRoute({
+    role: currentUser?.role,
+    route: currentPath,
+  });
+
+  if (properRoute !== currentPath && `/${currentPath}` !== properRoute) {
+    return <Navigate to={properRoute} replace />;
   }
 
   if (role.length && !role.includes(currentUser.role)) {
     return <Navigate to="/404" replace />;
   }
+
   return children;
 };
 
 export const PublicRoute = ({ children }) => {
   const { authAllow, currentUser, authLoading } = useAuth();
+
   if (authLoading) {
     return (
       <Loader
@@ -48,13 +51,12 @@ export const PublicRoute = ({ children }) => {
   }
 
   if (authAllow && currentUser) {
-    if (currentUser.role === "admin") {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else if (currentUser.role === "manager") {
-      return <Navigate to="/manager/dashboard" replace />;
-    } else {
-      return <Navigate to="/dashboard" replace />;
-    }
+    const properRoute = getProperRoute({
+      role: currentUser.role,
+      route: "dashboard",
+    });
+
+    return <Navigate to={properRoute} replace />;
   }
 
   return children;

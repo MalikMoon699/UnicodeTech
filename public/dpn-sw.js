@@ -37,6 +37,34 @@ messaging.onBackgroundMessage(function (payload) {
   const notificationOptions = {
     body: payload.notification.body,
     icon: payload.notification.icon,
+    data: payload.data,
   };
   self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  let clickUrl = event.notification.data?.clickUrl || "/";
+  if (!clickUrl.startsWith("http")) {
+    clickUrl = new URL(clickUrl, self.location.origin).href;
+  }
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        for (let client of windowClients) {
+          if (client.url === clickUrl && "focus" in client) {
+            return client.focus();
+          }
+        }
+        return clients.openWindow(clickUrl).catch((err) => {
+          console.error("Failed to open window:", err);
+          if (clickUrl !== self.location.origin + "/") {
+            return clients.openWindow(self.location.origin + "/");
+          }
+          throw err;
+        });
+      }),
+  );
 });
