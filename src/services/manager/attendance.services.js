@@ -45,16 +45,28 @@ export const listenAttendanceStats = (callback) => {
 };
 
 export const listenAllUsersWithAttendance = (managerId, callback) => {
+  const usersRef = collection(db, "UserIndex");
   const attendanceRef = collection(db, "Attendance");
 
+  const usersQuery = query(
+    usersRef,
+    where("status", "==", "active"),
+    where("role", "!=", "admin")
+  );
+
   let usersMap = new Map();
-  let usersSnapCache = new Map();
 
   let usersLoaded = false;
   let attendanceLoaded = false;
 
   const buildUserObject = (data) => ({
-    ...data,
+    userId: data.docId, 
+    fullName: data.fullName || "N/A",
+    email: data.email || "",
+    profileImage: data.profileImage || "",
+    placeId: data.placeId || "P1",
+    role: data.role || "user",
+    status: data.status,
     attendance: [],
     unseenCount: 0,
   });
@@ -68,21 +80,20 @@ export const listenAllUsersWithAttendance = (managerId, callback) => {
         return (a.fullName || "").localeCompare(b.fullName || "");
       });
 
-      callback(result, true); // ✅ ready
+      callback(result, true);
     }
   };
 
-  const unsubUsers = onSnapshot(collection(db, "Users"), (snap) => {
-    usersSnapCache = new Map();
+  const unsubUsers = onSnapshot(usersQuery, (snap) => {
+    usersMap = new Map();
 
     snap.docs.forEach((docSnap) => {
       const data = docSnap.data();
-      if (data.status !== "active") return;
+      if (data.docId === managerId) return;
 
-      usersSnapCache.set(data.userId, buildUserObject(data));
+      usersMap.set(data.docId, buildUserObject(data));
     });
 
-    usersMap = new Map(usersSnapCache);
     usersLoaded = true;
     tryEmit();
   });
@@ -106,13 +117,14 @@ export const listenAllUsersWithAttendance = (managerId, callback) => {
 
       const seenBy = data.seenBy || {};
 
-      if (data.checkIn && !seenBy?.checkIn?.includes(managerId)) {
-        user.unseenCount++;
-      }
+      const isCheckInUnseen =
+        data.checkIn && !seenBy?.checkIn?.includes(managerId);
 
-      if (data.checkOut && !seenBy?.checkOut?.includes(managerId)) {
-        user.unseenCount++;
-      }
+      const isCheckOutUnseen =
+        data.checkOut && !seenBy?.checkOut?.includes(managerId);
+
+      if (isCheckInUnseen) user.unseenCount++;
+      if (isCheckOutUnseen) user.unseenCount++;
 
       user.attendance.push({
         ...data,

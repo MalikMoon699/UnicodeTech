@@ -45,50 +45,38 @@ export const listenAttendanceStats = (callback) => {
 };
 
 export const listenAllUsersWithAttendance = (adminId, callback) => {
+  const usersRef = collection(db, "UserIndex");
   const attendanceRef = collection(db, "Attendance");
+
+  const usersQuery = query(
+    usersRef,
+    where("status", "==", "active"),
+    where("role", "!=", "admin"),
+  );
 
   let usersMap = new Map();
 
-  let usersSnapCache = new Map();
-  let managersSnapCache = new Map();
-
   const buildUserObject = (data) => ({
-    ...data,
+    userId: data.docId,
+    fullName: data.fullName || "N/A",
+    email: data.email || "",
+    profileImage: data.profileImage || "",
+    placeId: data.placeId || "P1",
+    role: data.role || "user",
+    status: data.status,
     attendance: [],
     unseenCount: 0,
   });
 
-  const mergeBaseUsers = () => {
+  const unsubUsers = onSnapshot(usersQuery, (snap) => {
     usersMap = new Map();
 
-    const allUsers = new Map([...usersSnapCache, ...managersSnapCache]);
-
-    allUsers.forEach((user, key) => {
-      if (user.status !== "active") return;
-      usersMap.set(key, buildUserObject(user));
-    });
-  };
-
-  const unsubUsers = onSnapshot(collection(db, "Users"), (snap) => {
-    usersSnapCache = new Map();
-
     snap.docs.forEach((docSnap) => {
       const data = docSnap.data();
-      usersSnapCache.set(data.userId, data);
+      if (data.docId === adminId) return;
+
+      usersMap.set(data.docId, buildUserObject(data));
     });
-
-    mergeBaseUsers();
-  });
-
-  const unsubManagers = onSnapshot(collection(db, "Managers"), (snap) => {
-    managersSnapCache = new Map();
-
-    snap.docs.forEach((docSnap) => {
-      const data = docSnap.data();
-      managersSnapCache.set(data.userId, data);
-    });
-
-    mergeBaseUsers();
   });
 
   const unsubAttendance = onSnapshot(attendanceRef, (attSnap) => {
@@ -137,7 +125,6 @@ export const listenAllUsersWithAttendance = (adminId, callback) => {
 
   return () => {
     unsubUsers();
-    unsubManagers();
     unsubAttendance();
   };
 };
