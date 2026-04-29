@@ -173,5 +173,3 @@ export const AttendanceHelp = [
 ];
 
 export const Push_Notification_Api = import.meta.env.VITE_Push_Notification;
-
-export const limit = 2;

@@ -12,13 +12,14 @@ import {
 } from "../../components/CustomComponents";
 import CustomTable from "../../components/CustomTable";
 import { useDebounce } from "../../utils/hooks/useDebounce";
-import { limit } from "../../utils/constants";
 import { toast } from "sonner";
 import Loader from "../../components/Loader";
 import { formateDate, timeAgo } from "../../utils/helper";
 import { User, UserCheck, UserPen, UserX } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const Users = () => {
+  const { limit } = useTheme();
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(null);
   const [roleLoading, setRoleLoading] = useState(null);
@@ -81,7 +82,6 @@ const Users = () => {
     fetchUsers(false);
   };
 
-
   const handleStatusChange = async (user, newStatus) => {
     try {
       setStatusLoading({ status: newStatus, id: user.authId });
@@ -113,7 +113,6 @@ const Users = () => {
       setStatusLoading(null);
     }
   };
-
 
   const handleRoleChange = async (userId, currentRole) => {
     try {
@@ -171,7 +170,7 @@ const Users = () => {
           style={{
             padding: "4px 10px",
             borderRadius: 6,
-            textTransform:"capitalize",
+            textTransform: "capitalize",
             fontSize: 12,
             background:
               row.status === "active"

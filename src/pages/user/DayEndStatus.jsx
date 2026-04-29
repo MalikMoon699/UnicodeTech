@@ -3,7 +3,6 @@ import { FileText, Minus, Plus } from "lucide-react";
 import "../../assets/style/DayEndStatus.css";
 import { RichTextarea } from "../../components/Custom.RichTextArea";
 import { useAuth } from "../../context/AuthContext";
-import { limit } from "../../utils/constants";
 import {
   CreateReport,
   EditReport,
@@ -13,9 +12,11 @@ import {
 import { toast } from "sonner";
 import Loader from "../../components/Loader";
 import { ReportCard } from "../../components/Report.component";
+import { useTheme } from "../../context/ThemeContext";
 
 const DayEndStatus = () => {
   const { currentUser } = useAuth();
+  const { limit } = useTheme();
   const [isReporting, setIsReporting] = useState(false);
   const [text, setText] = useState("");
   const [editingReport, setEditingReport] = useState(null);

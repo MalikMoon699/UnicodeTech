@@ -19,12 +19,13 @@ import {
   submitLeaveRequest,
 } from "../../services/manager/leave.services";
 import { useAuth } from "../../context/AuthContext";
-import { limit } from "../../utils/constants";
 import { LeaveList } from "../../components/Leave.components";
 import Loader from "../../components/Loader";
+import { useTheme } from "../../context/ThemeContext";
 
 const Leaves = () => {
   const { currentUser } = useAuth();
+  const { limit } = useTheme();
   const [leaveStats, setLeaveStats] = useState(null);
   const [requests, setRequests] = useState([]);
   const [loadingStates, setLoadingStates] = useState(false);

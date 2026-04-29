@@ -45,11 +45,11 @@ import { useDebounce } from "../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
 import { formateTime } from "../utils/helper";
-
-const MESSAGES_PAGE_SIZE = 30;
+import { useTheme } from "../context/ThemeContext";
 
 const Chats = () => {
   const { currentUser } = useAuth();
+  const { message_limit } = useTheme();
   const userId = currentUser?.userId;
   const authId = currentUser?.authId;
   const [chats, setChats] = useState([]);
@@ -88,6 +88,8 @@ const Chats = () => {
   const waitingForServerSnapshot = useRef(true);
   const previousScrollHeightRef = useRef(0);
   const previousScrollTopRef = useRef(0);
+
+  const MESSAGES_PAGE_SIZE = message_limit || 30;
 
   const mergeMessages = useCallback(
     (existingMessages, newMessages, prepend = false) => {

@@ -16,8 +16,20 @@ export const ThemeProvider = ({ children }) => {
     return savedSubmit !== null ? savedSubmit === "true" : true;
   };
 
+  const getInitialMessageLimit = () => {
+    const savedLimit = localStorage.getItem("message_limit");
+    return savedLimit !== null ? Number(savedLimit) : 30;
+  };
+
+  const getInitialLimit = () => {
+    const savedLimit = localStorage.getItem("limit");
+    return savedLimit !== null ? Number(savedLimit) : 10;
+  };
+
   const [theme, setTheme] = useState(getInitialTheme);
   const [isEnterSubmit, setIsEnterSubmit] = useState(getInitialSubmit);
+  const [message_limit, setMessageLimit] = useState(getInitialMessageLimit);
+  const [limit, setLimit] = useState(getInitialLimit);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -34,6 +46,14 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem("isEnterSubmit", isEnterSubmit);
   }, [isEnterSubmit]);
+
+  useEffect(() => {
+    localStorage.setItem("message_limit", message_limit);
+  }, [message_limit]);
+
+  useEffect(() => {
+    localStorage.setItem("limit", limit);
+  }, [limit]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
@@ -55,6 +75,10 @@ export const ThemeProvider = ({ children }) => {
         toggleSubmit,
         setLight,
         setDark,
+        message_limit,
+        setMessageLimit,
+        limit,
+        setLimit,
       }}
     >
       {children}

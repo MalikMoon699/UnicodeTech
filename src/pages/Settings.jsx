@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Input, ProfileImage, Header } from "../components/CustomComponents";
+import {
+  Input,
+  ProfileImage,
+  Header,
+  Selector,
+} from "../components/CustomComponents";
 import "../assets/style/Settings.css";
 import { Camera, Mail, Palette, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -11,7 +16,16 @@ import { UpdateProfileHelper } from "../services/setting.services.js";
 import { handleUploadImage } from "../utils/helper.js";
 
 const Setting = () => {
-  const { theme, toggleTheme, isEnterSubmit, toggleSubmit } = useTheme();
+  const {
+    theme,
+    toggleTheme,
+    isEnterSubmit,
+    toggleSubmit,
+    message_limit,
+    setMessageLimit,
+    limit,
+    setLimit,
+  } = useTheme();
   const { currentUser } = useAuth();
   const [loadingType, setLoadingType] = useState("");
   const [name, setName] = useState("");
@@ -153,14 +167,14 @@ const Setting = () => {
 
         <div className="settings-toggle-row">
           <div>
-            <span className="settings-toggle-title">Dark Mode</span>
+            <span className="settings-toggle-title">Light Mode</span>
             <p className="settings-toggle-description">
               Switch between light and dark themes
             </p>
           </div>
           <input type="checkbox" value={theme} onChange={toggleTheme} />
         </div>
-        <div className="settings-toggle-row" style={{ marginTop: "8px" }}>
+        <div className="settings-toggle-row" style={{ marginTop: "10px" }}>
           <div>
             <span className="settings-toggle-title">Send on Enter</span>
             <p className="settings-toggle-description">
@@ -172,6 +186,48 @@ const Setting = () => {
             type="checkbox"
             checked={isEnterSubmit}
             onChange={toggleSubmit}
+          />
+        </div>
+        <div className="settings-toggle-row" style={{ marginTop: "10px" }}>
+          <div>
+            <span className="settings-toggle-title">Fetch Limit</span>
+            <p className="settings-toggle-description">
+              Controls how many records are loaded for general data fetching
+              across the app.
+            </p>
+          </div>
+          <Selector
+            filter={limit}
+            setFilter={setLimit}
+            options={[
+              { filter: 5, label: "5" },
+              { filter: 10, label: "10" },
+              { filter: 20, label: "20" },
+              { filter: 40, label: "40" },
+            ]}
+            width="100px"
+          />
+        </div>
+        <div className="settings-toggle-row" style={{ marginTop: "10px" }}>
+          <div>
+            <span className="settings-toggle-title">
+              Chat Message Load Limit
+            </span>
+            <p className="settings-toggle-description">
+              Controls how many chat messages are loaded per page in the chat
+              section.
+            </p>
+          </div>
+          <Selector
+            filter={message_limit}
+            setFilter={setMessageLimit}
+            options={[
+              { filter: 30, label: "30" },
+              { filter: 60, label: "60" },
+              { filter: 80, label: "80" },
+              { filter: 100, label: "100" },
+            ]}
+            width="100px"
           />
         </div>
       </section>

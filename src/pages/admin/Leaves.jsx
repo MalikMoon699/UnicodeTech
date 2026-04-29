@@ -3,8 +3,8 @@ import { AdminLeaveCreateModal } from "../../components/Attendance.components";
 import { LeaveList } from "../../components/Leave.components";
 import "../../assets/style/Leave.css";
 import Loader from "../../components/Loader";
-import { limit } from "../../utils/constants";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import {
   CalendarCheck,
   CalendarClock,
@@ -52,6 +52,7 @@ const getLeaveServices = (tab) => {
 
 const Leaves = () => {
   const { currentUser } = useAuth();
+  const { limit } = useTheme();
   const [isCreateLeave, setIsCreateLeave] = useState(false);
   const [tab, setTab] = useState("my-created");
   const [leaveStats, setLeaveStats] = useState(null);
