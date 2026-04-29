@@ -686,7 +686,11 @@ const Chats = () => {
                       }
                     >
                       <ProfileImage
-                        Image={otherUser?.ProfileImage || IMAGES.PlaceHolder}
+                        Image={
+                          otherUser?.ProfileImage ||
+                          IMAGES[otherUser?.placeId] ||
+                          IMAGES.PlaceHolder
+                        }
                         className="chat-item-profile"
                         style={{ border: "none" }}
                       />
@@ -742,7 +746,11 @@ const Chats = () => {
                       }}
                     >
                       <ProfileImage
-                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                        Image={
+                          user?.ProfileImage ||
+                          IMAGES[user?.placeId] ||
+                          IMAGES.PlaceHolder
+                        }
                         className="chat-item-profile"
                         style={{ border: "none" }}
                       />
@@ -780,7 +788,11 @@ const Chats = () => {
               ) : (
                 <>
                   <ProfileImage
-                    Image={activeChatUser?.ProfileImage || IMAGES.PlaceHolder}
+                    Image={
+                      activeChatUser?.ProfileImage ||
+                      IMAGES[activeChatUser?.placeId] ||
+                      IMAGES.PlaceHolder
+                    }
                     className="chat-topbar-avatar"
                     style={{ border: "none" }}
                   />
@@ -834,7 +846,11 @@ const Chats = () => {
                       >
                         {!isMe && (
                           <ProfileImage
-                            Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                            Image={
+                              user?.ProfileImage ||
+                              IMAGES[user?.placeId] ||
+                              IMAGES.PlaceHolder
+                            }
                             className="chat-avatar"
                           />
                         )}
@@ -903,7 +919,11 @@ const Chats = () => {
 
                         {isMe && (
                           <ProfileImage
-                            Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                            Image={
+                              user?.ProfileImage ||
+                              IMAGES[user?.placeId] ||
+                              IMAGES.PlaceHolder
+                            }
                             className="chat-avatar"
                           />
                         )}
@@ -1118,7 +1138,11 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
                   >
                     <div className="group-create-left">
                       <ProfileImage
-                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                        Image={
+                          user?.ProfileImage ||
+                          IMAGES[user?.placeId] ||
+                          IMAGES.PlaceHolder
+                        }
                         className="group-create-avatar"
                       />
                       <div className="group-create-user-info">

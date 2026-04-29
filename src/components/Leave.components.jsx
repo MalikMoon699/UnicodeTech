@@ -94,7 +94,11 @@ export const LeaveList = ({ leaves, type = "user" }) => {
               {isAdmin && (
                 <ProfileImage
                   className="leave-card-profileImg"
-                  Image={leave?.user?.profileImage || IMAGES.PlaceHolder}
+                  Image={
+                    leave?.user?.profileImage ||
+                    IMAGES[leave?.user?.placeId] ||
+                    IMAGES.PlaceHolder
+                  }
                 />
               )}
               <div className="leave-content">
@@ -261,7 +265,11 @@ export const LeaveDetailsModal = ({ leave, isAdmin, onClose }) => {
           {isAdmin && (
             <div className="leave-detail-user">
               <ProfileImage
-                Image={leave?.user?.profileImage || IMAGES.PlaceHolder}
+                Image={
+                  leave?.user?.profileImage ||
+                  IMAGES[leave?.user?.placeId] ||
+                  IMAGES.PlaceHolder
+                }
                 className="leave-detail-avatar"
               />
               <div className="leave-detail-user-info">

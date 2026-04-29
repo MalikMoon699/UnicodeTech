@@ -120,6 +120,34 @@ export const formateDateTime = (date) => {
   return `${year}-${month}-${day} ${formattedTime}`;
 };
 
+export const foramteDateTimeDay = (date) => {
+  if (!date) return "";
+
+  const d = parseDate(date);
+
+  const dayName = d.toLocaleString("en-US", {
+    weekday: "short",
+  });
+
+  const day = d.toLocaleString("en-US", {
+    day: "2-digit",
+  });
+
+  const month = d.toLocaleString("en-US", {
+    month: "short",
+  });
+
+  const year = d.getFullYear();
+
+  const time = d.toLocaleString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return `${dayName} ${day} ${month} ${year} • ${time}`;
+};
+
 export const formateTime = (date) => {
   if (!date) return "";
 
@@ -162,3 +190,8 @@ export const getProperRoute = ({ role = "", route = "" }) => {
 
   return `/${route}`;
 };
+
+export const generatePlaceId = () => {
+   const randomNum = Math.floor(Math.random() * 10) + 1;
+   return `P${randomNum}`;
+ };

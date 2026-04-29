@@ -856,7 +856,11 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
                   >
                     <div className="group-create-left">
                       <ProfileImage
-                        Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                        Image={
+                          user?.ProfileImage ||
+                          IMAGES[user?.placeId] ||
+                          IMAGES.PlaceHolder
+                        }
                         className="group-create-avatar"
                       />
                       <div className="group-create-user-info">

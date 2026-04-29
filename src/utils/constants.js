@@ -1,21 +1,42 @@
 import SiteLogo from "../assets/images/SiteLogo.png";
 import SiteLogoRed from "../assets/images/SiteLogoRed.png";
 import SiteLogoWhite from "../assets/images/SiteLogoWhite.png";
-import PlaceHolder from "../assets/images/PlaceHolder.jpg";
+// import PlaceHolder from "../assets/images/PlaceHolder.jpg";
 import NotFound from "../assets/images/NotFound.png";
 import auth1 from "../assets/images/auth1.png";
 import auth2 from "../assets/images/auth2.png";
 import auth3 from "../assets/images/auth3.png";
+import PlaceHolder from "../assets/images/PlaceHolder/Placeholder.png";
+import P1 from "../assets/images/PlaceHolder/Placeholder1.png";
+import P2 from "../assets/images/PlaceHolder/Placeholder2.png";
+import P3 from "../assets/images/PlaceHolder/Placeholder3.png";
+import P4 from "../assets/images/PlaceHolder/Placeholder4.png";
+import P5 from "../assets/images/PlaceHolder/Placeholder5.png";
+import P6 from "../assets/images/PlaceHolder/Placeholder6.png";
+import P7 from "../assets/images/PlaceHolder/Placeholder7.png";
+import P8 from "../assets/images/PlaceHolder/Placeholder8.png";
+import P9 from "../assets/images/PlaceHolder/Placeholder9.png";
+import P10 from "../assets/images/PlaceHolder/Placeholder10.png";
 
 export const IMAGES = {
   SiteLogo,
   SiteLogoRed,
   SiteLogoWhite,
-  PlaceHolder,
   NotFound,
   auth1,
   auth2,
   auth3,
+  PlaceHolder,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
 };
 
 export const AdminSidebarMenu = [

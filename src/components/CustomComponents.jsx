@@ -753,7 +753,11 @@ export const UserHover = ({ userId, children, delay = 300 }) => {
               <div className="user-hover-user-info">
                 <ProfileImage
                   className="user-hover-image"
-                  Image={data?.profileImage || IMAGES.PlaceHolder}
+                  Image={
+                    data?.profileImage ||
+                    IMAGES[data?.placeId] ||
+                    IMAGES.PlaceHolder
+                  }
                 />
                 <div className="user-hover-user-info-container">
                   <p>{data?.fullName || "N/A"}</p>
@@ -957,7 +961,7 @@ export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
           <div className="user-hover-user-info">
             <ProfileImage
               className="user-hover-image"
-              Image={data?.profileImage || IMAGES.PlaceHolder}
+              Image={data?.profileImage||IMAGES[data?.placeId] || IMAGES.PlaceHolder}
             />
             <div className="user-hover-user-info-container">
               <p>{data?.fullName || "N/A"}</p>

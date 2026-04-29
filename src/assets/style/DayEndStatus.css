@@ -1,0 +1,52 @@
+.day-end-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: fit-content;
+  white-space: nowrap;
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.day-end-btn:hover .icon {
+  transform: scale(1.11);
+}
+
+.day-end-list {
+  margin-top: 50px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.day-end-list-header {
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 5px;
+  padding: 15px 10px;
+  font-size: 18px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-end-card {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+}
+
+.day-end-card-date {
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.day-end-card-text {
+  margin-left: 6px;
+}

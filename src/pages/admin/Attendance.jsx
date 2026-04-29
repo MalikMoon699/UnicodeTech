@@ -118,7 +118,7 @@ const Attendance = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            border: "1px solid var(--border)"
+                            border: "1px solid var(--border)",
                           }}
                           className={i?.className}
                         >
@@ -199,7 +199,11 @@ const Attendance = () => {
                   onClick={() => setSelectedUser(u)}
                 >
                   <ProfileImage
-                    Image={u?.profileImage || IMAGES.PlaceHolder}
+                    Image={
+                      u?.profileImage ||
+                      IMAGES[u?.placeId] ||
+                      IMAGES.PlaceHolder
+                    }
                     bg="var(--primary-hover)"
                     borderC="var(--primary)"
                     className="attendance-user-item-profile"

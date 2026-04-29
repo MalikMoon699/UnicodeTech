@@ -14,7 +14,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../utils/FirebaseConfig";
-import { generateCustomId, generateSearchTokens } from "../utils/helper";
+import { generateCustomId, generatePlaceId, generateSearchTokens } from "../utils/helper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -149,6 +149,7 @@ export const AuthProvider = ({ children }) => {
 
     const authUser = res.user;
     const userId = await generateCustomId("Users");
+    const PlaceId = generatePlaceId();
 
     const userData = {
       authId: authUser.uid,
@@ -161,6 +162,7 @@ export const AuthProvider = ({ children }) => {
       email,
       role: "user",
       profileImage: "",
+      placeId: PlaceId,
       status: "pending",
       createdAt: serverTimestamp(),
       isOnline: true,
@@ -176,6 +178,7 @@ export const AuthProvider = ({ children }) => {
       fullName: name,
       email,
       profileImage: "",
+      placeId: PlaceId,
       docId: userId,
       status: "pending",
       searchText: [

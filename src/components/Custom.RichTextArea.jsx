@@ -36,6 +36,7 @@ export const RichTextarea = ({
   onSubmit = () => {},
   onEdit = () => {},
   onCancelEdit = () => {},
+  style={}
 }) => {
   const { isEnterSubmit } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -194,7 +195,7 @@ export const RichTextarea = ({
   };
 
   return (
-    <div className="editor-container">
+    <div style={style} className="editor-container">
       <div className={`editor-toolbar ${isStyle ? "show" : "close"}`}>
         <Btn
           active={editor.isActive("bold")}
@@ -463,7 +464,11 @@ const MentionComponent = ({ editor }) => {
                   }}
                 >
                   <ProfileImage
-                    Image={user?.ProfileImage || IMAGES.PlaceHolder}
+                    Image={
+                      user?.ProfileImage ||
+                      IMAGES[user?.placeId] ||
+                      IMAGES.PlaceHolder
+                    }
                     className="mention-item-profile"
                     style={{ border: "1px solid var(--border)" }}
                   />

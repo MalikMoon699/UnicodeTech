@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Input,
-  ProfileImage,
-  Header,
-} from "../components/CustomComponents";
+import { Input, ProfileImage, Header } from "../components/CustomComponents";
 import "../assets/style/Settings.css";
 import { Camera, Mail, Palette, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -22,7 +18,7 @@ const Setting = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const fileInputRef = useRef(null);
-  
+
   useEffect(() => {
     if (currentUser) {
       setName(currentUser?.fullName);
@@ -80,7 +76,10 @@ const Setting = () => {
         <div className="settings-avatar-row">
           <ProfileImage
             Image={
-              avatarPreview || currentUser?.profilImg || IMAGES.PlaceHolder
+              avatarPreview ||
+              currentUser?.profilImg ||
+              IMAGES[currentUser?.placeId] ||
+              IMAGES.PlaceHolder
             }
             className="settings-avatar"
           />
