@@ -1118,19 +1118,56 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
             <label className="custom-input-label">
               {groupMembers?.length || 0} selected
             </label>
-          </div>
-          <div className="chat-search group-create-search">
-            <Search size={18} />
-            <input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          </div>{" "}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "start",
+              gap: "4px",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{ width: "100%" }}
+              className="chat-search group-create-search"
+            >
+              <Search size={18} />
+              <input
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="group-create-right">
+              <input
+                type="checkbox"
+                checked={
+                  groupMembers?.length > 0 &&
+                  groupMembers?.length === filteredUsers?.length
+                }
+                onChange={() => {
+                  if (groupMembers?.length === filteredUsers?.length) {
+                    setGroupMembers([]);
+                  } else {
+                    setGroupMembers(filteredUsers);
+                  }
+                }}
+                className="group-create-checkbox"
+              />
+
+              {groupMembers?.length > 0 &&
+                groupMembers?.length === filteredUsers?.length && (
+                  <div className="group-create-checkmark">✓</div>
+                )}
+            </div>
           </div>
           <div className="group-create-container">
             {filteredUsers?.length > 0 ? (
               filteredUsers.map((user, index) => {
-                const isSelected = groupMembers?.some((u) => u.id === user.id);
+                const isSelected = groupMembers?.some(
+                  (u) => u.id === user.id,
+                );
 
                 return (
                   <div

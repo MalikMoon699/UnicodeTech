@@ -47,8 +47,7 @@ export const checkIn = async ({ userId, lateReason = "" }) => {
 
   const adminSnap = await getDocs(collection(db, "Admins"));
   const Admins = adminSnap.docs.map((doc) => doc.id);
-  console.log("Admins----->", Admins);
-  
+
   handleSendNotification({
     title: "Attendance",
     body: "Check in",
@@ -89,6 +88,15 @@ export const checkOut = async (userId, date) => {
     checkOut: now.toISOString(),
     hours,
     "seenBy.checkOut": [],
+  });
+  const adminSnap = await getDocs(collection(db, "Admins"));
+  const Admins = adminSnap.docs.map((doc) => doc.id);
+
+  handleSendNotification({
+    title: "Attendance",
+    body: "Check out",
+    link: "/attendance",
+    userIds: Admins,
   });
 };
 

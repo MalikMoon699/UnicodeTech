@@ -1,4 +1,10 @@
-import React, { useRef, useState, useMemo, useEffect, useCallback } from "react";
+import React, {
+  useRef,
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+} from "react";
 import "../assets/style/Attendance.css";
 import {
   ChevronDown,
@@ -284,6 +290,12 @@ export const AttendanceHover = ({ data, children, delay = 300 }) => {
                 <div className="attendanceHover-tooltip-late">
                   <span>Late Reason:</span>
                   <p>{data?.lateReason || "N/A"}</p>
+                </div>
+              )}
+              {data.type === "leave" && (
+                <div className="attendanceHover-tooltip-late">
+                  <span>Leave Reason:</span>
+                  <p>{data?.leaveReason || "N/A"}</p>
                 </div>
               )}
             </div>
@@ -822,35 +834,67 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
             }}
           >
             <div
-              style={{ margin: "10px 5px" }}
-              className="chat-search group-create-search"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "start",
+                gap: "4px",
+                width: "100%",
+              }}
             >
-              <Search size={18} />
-              <input
-                placeholder="Search users..."
-                value={searchTerm}
-                disabled={loadingUsers}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <div
+                style={{ margin: "10px 5px", width: "91.5%" }}
+                className="chat-search group-create-search"
+              >
+                <Search size={18} />
+                <input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  disabled={loadingUsers}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="group-create-right">
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedUsers?.length > 0 &&
+                    selectedUsers?.length === users?.length
+                  }
+                  onChange={() => {
+                    if (selectedUsers?.length === users?.length) {
+                      setSelectedUsers([]);
+                    } else {
+                      setSelectedUsers(users.map((user) => user.docId));
+                    }
+                  }}
+                  className="group-create-checkbox"
+                />
+
+                {selectedUsers?.length > 0 &&
+                  selectedUsers?.length === users?.length && (
+                    <div className="group-create-checkmark">✓</div>
+                  )}
+              </div>
             </div>
             {loadingUsers ? (
               <Loader style={{ height: "150px" }} size={40} color="#fff" />
             ) : users?.length > 0 ? (
               users.map((user) => {
-                const isSelected = selectedUsers.includes(user.userId);
+                const isSelected = selectedUsers.includes(user.docId);
                 const toggleUser = () => {
                   if (isSelected) {
                     setSelectedUsers((prev) =>
-                      prev.filter((id) => id !== user.userId),
+                      prev.filter((id) => id !== user.docId),
                     );
                   } else {
-                    setSelectedUsers((prev) => [...prev, user.userId]);
+                    setSelectedUsers((prev) => [...prev, user.docId]);
                   }
                 };
 
                 return (
                   <div
-                    key={user?.userId}
+                    key={user?.docId}
                     className={`group-create-item ${isSelected ? "group-create-item-active" : ""}`}
                     onClick={() => toggleUser(user)}
                   >

@@ -1,11 +1,19 @@
-import React from 'react'
+import React, { useState } from "react";
+import UserDayEndStatus from "../user/DayEndStatus";
+import AdminDayEndStatus from "../admin/DayEndStatus";
 
 const DayEndStatus = () => {
-  return (
-    <div>
-      <div>DayEndStatus.jsx</div>
-    </div>
-  );
-}
+  const [tab, setTab] = useState("my");
 
-export default DayEndStatus
+  return (
+    <>
+      {tab === "my" ? (
+        <UserDayEndStatus isManager={true} tab={tab} setTab={setTab} />
+      ) : (
+        <AdminDayEndStatus isManager={true} tab={tab} setTab={setTab} />
+      )}
+    </>
+  );
+};
+
+export default DayEndStatus;

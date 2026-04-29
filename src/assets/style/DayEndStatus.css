@@ -13,15 +13,23 @@
   cursor: pointer;
 }
 
+.day-end-btn:disabled {
+  color: var(--muted-foreground);
+  border-color: var(--border);
+  background: var(--border);
+  cursor: not-allowed;
+}
+
 .day-end-btn:hover .icon {
   transform: scale(1.11);
 }
 
 .day-end-list {
-  margin-top: 50px;
+  margin-top: 20px;
   border: 1px solid var(--border);
   border-radius: 7px;
   overflow: hidden;
+  width: 100%;
 }
 
 .day-end-list-header {
@@ -30,10 +38,36 @@
   align-items: center;
   justify-content: start;
   gap: 5px;
+  width: 100%;
   padding: 15px 10px;
   font-size: 18px;
   font-weight: 600;
   border-bottom: 1px solid var(--border);
+}
+
+.day-end-list-header-user-profile {
+  width: 40px;
+  height: 40px;
+}
+
+.day-end-list-header-user-content {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.day-end-list-header-user-content > strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--card-foreground);
+}
+
+.day-end-list-header-user-content > p {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  font-weight: 200;
 }
 
 .day-end-card {
@@ -50,4 +84,39 @@
 
 .day-end-card-text {
   margin-left: 6px;
+}
+
+.admin-report-users-panel {
+  position: absolute;
+  top: 0;
+  left: -23px;
+  border-radius: 0px 8px 0px 8px;
+  z-index: 1;
+  height: 70vh;
+  transform: translateX(-100%);
+  transition: all 0.3s ease;
+  border-left: none;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  max-width: 90vw;
+}
+
+.admin-report-users-panel.show {
+  transform: translateX(0);
+}
+
+.admin-report-users-panel-controller {
+  position: absolute;
+  top: 50%;
+  right: -31px;
+  opacity: 2;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0px 5px 5px 0px;
+  font-size: 0px;
+  padding: 10px 3px;
+  cursor: pointer;
 }

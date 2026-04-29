@@ -19,11 +19,13 @@ export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
     let status = "pending";
     if (type === "boss") status = "approved";
     if (type === "weekend") status = "approved";
-    
-    const leaveDateKeys = requestData.duration.map(
-      (item) => new Date(item.date).toISOString().split("T")[0],
-    );
 
+    const leaveDateKeys = requestData.duration.map((item) => {
+      const date = new Date(item.date);
+      date.setDate(date.getDate() + 1);
+      return date.toISOString().split("T")[0];
+    });
+    
     const dates = requestData.duration.map((item) => ({
       date: new Date(item.date).toISOString(),
       status,

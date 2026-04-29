@@ -615,3 +615,12 @@ export const renderMessage = (html) => {
     },
   });
 };
+
+export const plainTextContent = (content = "") => {
+  return content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+};

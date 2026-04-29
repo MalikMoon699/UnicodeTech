@@ -224,6 +224,9 @@
   background: var(--card-foreground);
 }
 
+.style-import ul {
+  margin: 5px 0px;
+}
 .style-import li {
   margin-left: 14px;
 }

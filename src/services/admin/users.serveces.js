@@ -94,7 +94,9 @@ export const getUsersWithoutPaginationHelper = async ({
     const searchValue = search.toLowerCase().replace(/\s+/g, "");
 
     let constraints = [];
+
     constraints.push(where("status", "==", "active"));
+
     if (role !== "all") {
       constraints.push(where("role", "==", role));
     } else {
@@ -108,19 +110,14 @@ export const getUsersWithoutPaginationHelper = async ({
     const q = query(baseRef, ...constraints);
     const snap = await getDocs(q);
 
-    const users = await Promise.all(
-      snap.docs.map(async (docSnap) => {
-        const indexData = docSnap.data();
+    const users = snap.docs.map((docSnap) => {
+      const data = docSnap.data();
 
-        const userRef = doc(db, indexData.collection, indexData.docId);
-        const userSnap = await getDoc(userRef);
-
-        return {
-          _id: indexData.docId,
-          ...(userSnap.exists() ? userSnap.data() : {}),
-        };
-      }),
-    );
+      return {
+        _id: docSnap.id,
+        ...data,
+      };
+    });
 
     return users;
   } catch (err) {
@@ -128,6 +125,51 @@ export const getUsersWithoutPaginationHelper = async ({
     throw err;
   }
 };
+
+
+// export const getUsersWithoutPaginationHelper = async ({
+//   search = "",
+//   role = "all",
+// }) => {
+//   try {
+//     const baseRef = collection(db, "UserIndex");
+
+//     const searchValue = search.toLowerCase().replace(/\s+/g, "");
+
+//     let constraints = [];
+//     constraints.push(where("status", "==", "active"));
+//     if (role !== "all") {
+//       constraints.push(where("role", "==", role));
+//     } else {
+//       constraints.push(where("role", "in", ["user", "manager"]));
+//     }
+
+//     if (searchValue) {
+//       constraints.push(where("searchText", "array-contains", searchValue));
+//     }
+
+//     const q = query(baseRef, ...constraints);
+//     const snap = await getDocs(q);
+//     const users = await Promise.all(
+//       snap.docs.map(async (docSnap) => {
+//         const indexData = docSnap.data();
+
+//         const userRef = doc(db, indexData.collection, indexData.docId);
+//         const userSnap = await getDoc(userRef);
+
+//         return {
+//           _id: indexData.docId,
+//           ...(userSnap.exists() ? userSnap.data() : {}),
+//         };
+//       }),
+//     );
+
+//     return users;
+//   } catch (err) {
+//     console.error("getUsersWithoutPaginationHelper error:", err);
+//     throw err;
+//   }
+// };
 
 export const updateUserStatus = async ({ user, status }) => {
   try {

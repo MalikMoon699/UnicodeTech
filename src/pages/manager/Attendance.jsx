@@ -12,6 +12,7 @@ import {
   UserMinus,
   AlarmClock,
   CircleQuestionMark,
+  User,
 } from "lucide-react";
 import MyAttendance from "../../pages/user/Attendance";
 import { useAuth } from "../../context/AuthContext";
@@ -168,7 +169,7 @@ const Attendance = () => {
               tab={tab}
               setTab={setTab}
               options={[
-                { label: "My", value: "my", icon: Users },
+                { label: "My", value: "my", icon: User },
                 { label: "Users", value: "users", icon: Users },
               ]}
               outerWidth="fit-content"
