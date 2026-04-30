@@ -8,6 +8,7 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import { db } from "../../utils/FirebaseConfig";
+import { formatLocalDate } from "../../utils/helper";
 
 export const listenAttendanceStats = (callback) => {
   const today = new Date().toISOString().split("T")[0];
@@ -51,7 +52,7 @@ export const listenAllUsersWithAttendance = (managerId, callback) => {
   const usersQuery = query(
     usersRef,
     where("status", "==", "active"),
-    where("role", "!=", "admin")
+    where("role", "!=", "admin"),
   );
 
   let usersMap = new Map();
@@ -60,7 +61,7 @@ export const listenAllUsersWithAttendance = (managerId, callback) => {
   let attendanceLoaded = false;
 
   const buildUserObject = (data) => ({
-    userId: data.docId, 
+    userId: data.docId,
     fullName: data.fullName || "N/A",
     email: data.email || "",
     profileImage: data.profileImage || "",
@@ -152,13 +153,15 @@ export const listenSelectedUserMonthly = (
   if (!userId || !date) return;
 
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  const startString = formatLocalDate(start);
+  const endString = formatLocalDate(end);
 
   const q = query(
     collection(db, "Attendance"),
     where("userId", "==", userId),
-    where("date", ">=", start.toISOString().split("T")[0]),
-    where("date", "<=", end.toISOString().split("T")[0]),
+    where("date", ">=", startString),
+    where("date", "<", endString),
   );
 
   let isFirstLoad = true;

@@ -75,7 +75,7 @@ export const handleSendNotification = async ({
     });
 
     if (offlineTokens.length > 0) {
-      const res = await sendNotification({
+      await sendNotification({
         apiKey: Push_Notification_Api,
         title,
         body,
@@ -83,8 +83,6 @@ export const handleSendNotification = async ({
         link,
         fcmTokens: offlineTokens,
       });
-
-      console.log("Notification sent response:", res);
     }
   } catch (err) {
     console.error("Failed to send notification:", err);

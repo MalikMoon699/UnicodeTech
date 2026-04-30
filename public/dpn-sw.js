@@ -5,6 +5,8 @@ importScripts(
   "https://www.gstatic.com/firebasejs/10.3.0/firebase-messaging-compat.js",
 );
 
+const API_LINK = "https://unicodetech-two.vercel.app";
+
 const decodeConfig = (encoded) => {
   return atob(encoded);
 };
@@ -32,7 +34,6 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
-  console.log("[dpn-sw.js] Received background message ", payload);
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
@@ -46,7 +47,7 @@ self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   let clickUrl = event.notification.data?.clickUrl || "/";
   if (!clickUrl.startsWith("http")) {
-    clickUrl = new URL(clickUrl, self.location.origin).href;
+    clickUrl = new URL(clickUrl, API_LINK).href;
   }
 
   event.waitUntil(

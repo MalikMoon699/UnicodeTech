@@ -8,6 +8,7 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import { db } from "../../utils/FirebaseConfig";
+import { formatLocalDate } from "../../utils/helper";
 
 export const listenAttendanceStats = (callback) => {
   const today = new Date().toISOString().split("T")[0];
@@ -133,13 +134,15 @@ export const listenSelectedUserMonthly = (userId, date, adminId, callback) => {
   if (!userId || !date) return;
 
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  const startString = formatLocalDate(start);
+  const endString = formatLocalDate(end);
 
   const q = query(
     collection(db, "Attendance"),
     where("userId", "==", userId),
-    where("date", ">=", start.toISOString().split("T")[0]),
-    where("date", "<=", end.toISOString().split("T")[0]),
+    where("date", ">=", startString),
+    where("date", "<", endString),
   );
 
   return onSnapshot(q, (snapshot) => {

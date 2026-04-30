@@ -14,7 +14,11 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../utils/FirebaseConfig";
-import { generateCustomId, generatePlaceId, generateSearchTokens } from "../utils/helper";
+import {
+  generateCustomId,
+  generatePlaceId,
+  generateSearchTokens,
+} from "../utils/helper";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -118,6 +122,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    if (currentUser) {
+      reCheckToken();
+    }
+  }, [currentUser]);
+
+  const reCheckToken = async () => {
+    const indexRef = doc(db, "UserIndex", currentUser?.authId);
+    const userRef = doc(db, currentUser?.roleCollection, currentUser?.docId);
+    const token = await handleGetToken();
+    if (token) {
+      await Promise.all([
+        addFcmToken(userRef, token),
+        addFcmToken(indexRef, token),
+      ]);
+    }
+  };
+
+  useEffect(() => {
     if (!currentUser?.roleCollection || !currentUser?.docId) return;
 
     const userRef = doc(db, currentUser.roleCollection, currentUser.docId);
@@ -216,6 +238,10 @@ export const AuthProvider = ({ children }) => {
       await signOut(auth);
       throw new Error("No show");
     }
+    if ("serviceWorker" in navigator) {
+      await navigator.serviceWorker.ready;
+    }
+
     const token = await handleGetToken();
     if (token) {
       await Promise.all([

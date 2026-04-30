@@ -42,7 +42,6 @@ const App = () => {
   useEffect(() => {
     initMessaging(Push_Notification_Api);
     const unsubscribe = onMessageListener(async (payload) => {
-      console.log("Foreground notification received:", payload);
       const { title, body, image } = payload.notification;
       const link = payload.data?.clickUrl || "/";
       const registration = await navigator.serviceWorker.ready;

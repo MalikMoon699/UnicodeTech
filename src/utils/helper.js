@@ -164,6 +164,13 @@ export const formateTime = (date) => {
   return `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
 };
 
+export const formatLocalDate = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export const getProperRoute = ({ role = "", route = "" }) => {
   if (!route) return route;
 

@@ -14,6 +14,7 @@ import {
   onSnapshot,
   getDocs,
 } from "firebase/firestore";
+import { formatLocalDate } from "../../utils/helper";
 
 export const checkIn = async ({ userId, lateReason = "" }) => {
   const now = new Date();
@@ -134,13 +135,15 @@ export const subscribeMonthlyAttendance = ({ userId, date, callback }) => {
   if (!userId || !date) return;
 
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  const startString = formatLocalDate(start);
+  const endString = formatLocalDate(end);
 
   const q = query(
     collection(db, "Attendance"),
     where("userId", "==", userId),
-    where("date", ">=", start.toISOString().split("T")[0]),
-    where("date", "<=", end.toISOString().split("T")[0]),
+    where("date", ">=", startString),
+    where("date", "<", endString),
   );
 
   const unsubscribe = onSnapshot(q, (snap) => {
@@ -161,7 +164,6 @@ export const subscribeMonthlyAttendance = ({ userId, date, callback }) => {
         status: data.status || "absent",
       };
     });
-
     callback(map);
   });
 
