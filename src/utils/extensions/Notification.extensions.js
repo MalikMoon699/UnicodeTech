@@ -41,34 +41,54 @@ export const handleSendNotification = async ({
   body = "",
   link = "",
   userIds = [],
+  isByAuth = false,
 }) => {
   try {
     if (!userIds || userIds.length === 0) return;
+
     const offlineTokens = [];
+
     const usersData = await Promise.all(
       userIds.map(async (userId) => {
-        const q = query(
-          collection(db, "UserIndex"),
-          where("docId", "==", userId),
-        );
-        const snap = await getDocs(q);
-        if (snap.empty) return null;
-        const docSnap = snap.docs[0];
-        const data = docSnap.data();
+        let data = null;
+        let authId = null;
+
+        if (isByAuth) {
+          const ref = doc(db, "UserIndex", userId);
+          const snap = await getDoc(ref);
+
+          if (!snap.exists()) return null;
+
+          data = snap.data();
+          authId = snap.id;
+        } else {
+          const q = query(
+            collection(db, "UserIndex"),
+            where("docId", "==", userId)
+          );
+
+          const snap = await getDocs(q);
+          if (snap.empty) return null;
+
+          const docSnap = snap.docs[0];
+          data = docSnap.data();
+          authId = docSnap.id;
+        }
+
         return {
           isOnline: data.isOnline,
           fcmTokens: data.fcmTokens,
           userId,
-          authId: docSnap.id,
+          authId,
         };
-      }),
+      })
     );
 
     usersData.forEach((user) => {
       if (!user) return;
 
       if (user.isOnline) {
-        showToast({ title, body, link, authId: user?.authId });
+        showToast({ title, body, link, authId: user.authId });
       } else if (user.fcmTokens) {
         offlineTokens.push(...user.fcmTokens);
       }

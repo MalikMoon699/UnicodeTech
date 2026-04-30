@@ -44,7 +44,7 @@ import { IMAGES } from "../utils/constants";
 import { useDebounce } from "../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../components/Loader";
-import { formateTime } from "../utils/helper";
+import { formateTime, generateCustomId } from "../utils/helper";
 import { useTheme } from "../context/ThemeContext";
 
 const Chats = () => {
@@ -460,53 +460,61 @@ const Chats = () => {
   };
 
   const handleSend = async () => {
-    if (isEmpty(text) || !activeChat) return;
-    const tempText = text;
-    setText("");
-    const optimisticId = `optimistic-${Date.now()}`;
-    const optimisticMessage = {
-      id: optimisticId,
-      text: tempText,
-      senderId: userId,
-      createdAt: Date.now(),
-      isOptimistic: true,
-    };
-    setMessages((prev) => [...prev, optimisticMessage]);
+  if (isEmpty(text) || !activeChat) return;
 
-    try {
-      const realId = await sendMessage(
-        activeChat,
-        tempText,
-        userId,
-        authId,
-        activeChatMemberAuthIds,
-      );
-      setMessages((prev) => {
-        const filtered = prev.filter((m) => m.id !== optimisticId);
-        const newMsg = {
-          ...optimisticMessage,
-          id: realId,
-          isOptimistic: false,
-        };
-        return [...filtered, newMsg];
-      });
-      const unsubMsg = listenMessageUpdate(activeChat, realId, (updatedMsg) => {
+  const tempText = text;
+  const customMsgId = await generateCustomId("messages");
+
+  setText("");
+
+  const messageObj = {
+    id: customMsgId,
+    text: tempText,
+    senderId: userId,
+    createdAt: Date.now(),
+    isOptimistic: true,
+  };
+
+  setMessages((prev) => [...prev, messageObj]);
+
+  try {
+    await sendMessage(
+      activeChat,
+      tempText,
+      userId,
+      authId,
+      activeChatMemberAuthIds,
+      customMsgId,
+    );
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === customMsgId ? { ...m, isOptimistic: false } : m,
+      ),
+    );
+
+    const unsubMsg = listenMessageUpdate(
+      activeChat,
+      customMsgId,
+      (updatedMsg) => {
         if (updatedMsg) {
           setMessages((prev) =>
-            prev.map((m) => (m.id === realId ? updatedMsg : m)),
+            prev.map((m) => (m.id === customMsgId ? updatedMsg : m)),
           );
         } else {
-          setMessages((prev) => prev.filter((m) => m.id !== realId));
+          setMessages((prev) => prev.filter((m) => m.id !== customMsgId));
         }
-      });
-      messageSubscriptionsRef.current.set(realId, unsubMsg);
-    } catch (err) {
-      toast.error("Message failed");
-      setMessages((prev) =>
-        prev.map((m) => (m.id === optimisticId ? { ...m, isFailed: true } : m)),
-      );
-    }
-  };
+      },
+    );
+
+    messageSubscriptionsRef.current.set(customMsgId, unsubMsg);
+  } catch (err) {
+    toast.error("Message failed");
+
+    setMessages((prev) =>
+      prev.map((m) => (m.id === customMsgId ? { ...m, isFailed: true } : m)),
+    );
+  }
+};
 
   const handleStartChat = async (targetUserId, targetauthId) => {
     setStartChatLoading(true);
@@ -740,7 +748,7 @@ const Chats = () => {
                             : "pointer",
                       }}
                       onClick={() => {
-                        if (startChatLoading) {
+                        if (startChatLoading || chatsLoading) {
                           return;
                         } else {
                           handleStartChat(user.docId, user.id);

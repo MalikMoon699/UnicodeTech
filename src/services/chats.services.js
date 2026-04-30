@@ -18,6 +18,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../utils/FirebaseConfig";
 import { generateCustomId } from "../utils/helper";
+import { handleSendNotification } from "../utils/extensions/Notification.extensions";
+import { plainTextContent } from "../components/Custom.RichTextArea";
 
 export const createChat = async (
   members,
@@ -118,7 +120,7 @@ export const DeleteGroup = async (chatId) => {
   await deleteDoc(doc(db, "chats", chatId));
 };
 
-export const LeaveGroup = async (chatId, userId,userAuthId) => {
+export const LeaveGroup = async (chatId, userId, userAuthId) => {
   const chatRef = doc(db, "chats", chatId);
 
   const chatSnap = await getDoc(chatRef);
@@ -167,10 +169,9 @@ export const sendMessage = async (
   senderId,
   senderAuthId,
   activeChatMemberAuthIds,
+  customMsgId,
 ) => {
   try {
-    const customMsgId = await generateCustomId("messages");
-
     const batch = writeBatch(db);
 
     const msgRef = doc(db, "chats", chatId, "messages", customMsgId);
@@ -209,7 +210,18 @@ export const sendMessage = async (
         });
       }
     });
+    const recipientIds = activeChatMemberAuthIds.filter(
+      (id) => id !== senderAuthId,
+    );
 
+    const PlainText = plainTextContent(message);
+    handleSendNotification({
+      title: "Chat",
+      body: PlainText,
+      link: `/chats?chatId=${chatId}`,
+      userIds: recipientIds,
+      isByAuth: true,
+    });
     await batch.commit();
 
     return customMsgId;
