@@ -419,13 +419,21 @@
   margin-top: 2px;
 }
 
-/* .chat-topbar-status {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  margin-left: 6px;
-} */
+.chat-topbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--card-foreground);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.chat-topbar-btn:hover .icon {
+  transform: rotate(90deg);
+}
 
 /* ======================== Create Group ======================== */
 
@@ -525,4 +533,124 @@
   text-align: center;
   color: #9ca3af;
   padding: 20px;
+}
+
+/* ======================== Chat Info ======================== */
+.chat-info-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0px;
+  width: 360px;
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  height: 100vh;
+  justify-content: start !important;
+  overflow-y: auto;
+  z-index: 10;
+  opacity: 0;
+  transform: translateX(100%);
+  transition:
+    transform 0.4s ease,
+    opacity 0.3s ease;
+}
+
+.chat-info-sidebar.open {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.chat-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0px 20px;
+}
+
+.chat-info-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-info-sub {
+  display: flex;
+  gap: 10px;
+  padding: 4px 20px 15px;
+}
+
+.chat-info-badge {
+  background: var(--muted);
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.chat-info-section {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding: 20px;
+}
+
+.chat-info-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-bottom: 10px;
+}
+
+.chat-info-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.chat-info-row p {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.chat-info-row span {
+  font-weight: 500;
+}
+
+.chat-info-members-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chat-info-member {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.chat-info-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.chat-info-member-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-info-member-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--muted-foreground);
+}
+
+.chat-info-member-info > span {
+  color: var(--card-foreground);
+  font-size: 16px;
+  font-weight: 200;
+}
+
+.chat-info-admin-badge {
+  margin-left: 8px;
+  background: var(--muted-foreground);
+  padding: 2px 8px;
+  color: var(--border);
+  border-radius: 10px;
+  font-size: 11px;
 }

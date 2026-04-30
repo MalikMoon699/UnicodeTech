@@ -17,6 +17,7 @@ import {
   editMessage,
   deleteMessage,
   listenMessageUpdate,
+  UpdateGroup,
 } from "../services/chats.services";
 import "../assets/style/Chats.css";
 import {
@@ -31,9 +32,15 @@ import {
   CircleX,
   Check,
   CheckCheck,
+  EllipsisVertical,
+  X,
+  Calendar,
+  Shield,
+  MessageSquare,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Input,
   ProfileImage,
@@ -50,6 +57,7 @@ import { useTheme } from "../context/ThemeContext";
 const Chats = () => {
   const { currentUser } = useAuth();
   const { message_limit } = useTheme();
+  const navigate = useNavigate();
   const userId = currentUser?.userId;
   const authId = currentUser?.authId;
   const [chats, setChats] = useState([]);
@@ -60,6 +68,7 @@ const Chats = () => {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
   const [startChatLoading, setStartChatLoading] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [showDMs, setShowDMs] = useState(false);
@@ -424,6 +433,14 @@ const Chats = () => {
     return chats.find((c) => (c.chatId || c.id) === activeChat);
   }, [activeChat, chats]);
 
+  useEffect(() => {
+    if (activeChat && !activeChatLoading && !activeChatData) {
+      navigate("/chats");
+      toast.info("Chat not found");
+      return;
+    }
+  }, [activeChatLoading, activeChat, activeChatData]);
+
   const activeChatUser = useMemo(() => {
     if (!activeChatData || activeChatData.type !== "private") return null;
     const otherId = activeChatData.members?.find((id) => id !== userId);
@@ -446,6 +463,12 @@ const Chats = () => {
     );
   }, [messages]);
 
+  const selectedChatUsers = useMemo(() => {
+    if (!activeChatData?.members || !allUsers.length) return [];
+
+    return activeChatData.members.map((id) => userMap[id]).filter(Boolean);
+  }, [activeChatData, userMap, allUsers]);
+
   const scrollToBottom = (behavior = "smooth") => {
     const el = chatContainerRef.current;
     if (!el) return;
@@ -460,61 +483,61 @@ const Chats = () => {
   };
 
   const handleSend = async () => {
-  if (isEmpty(text) || !activeChat) return;
+    if (isEmpty(text) || !activeChat) return;
 
-  const tempText = text;
-  const customMsgId = await generateCustomId("messages");
+    const tempText = text;
+    const customMsgId = await generateCustomId("messages");
 
-  setText("");
+    setText("");
 
-  const messageObj = {
-    id: customMsgId,
-    text: tempText,
-    senderId: userId,
-    createdAt: Date.now(),
-    isOptimistic: true,
+    const messageObj = {
+      id: customMsgId,
+      text: tempText,
+      senderId: userId,
+      createdAt: Date.now(),
+      isOptimistic: true,
+    };
+
+    setMessages((prev) => [...prev, messageObj]);
+
+    try {
+      await sendMessage(
+        activeChat,
+        tempText,
+        userId,
+        authId,
+        activeChatMemberAuthIds,
+        customMsgId,
+      );
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === customMsgId ? { ...m, isOptimistic: false } : m,
+        ),
+      );
+
+      const unsubMsg = listenMessageUpdate(
+        activeChat,
+        customMsgId,
+        (updatedMsg) => {
+          if (updatedMsg) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === customMsgId ? updatedMsg : m)),
+            );
+          } else {
+            setMessages((prev) => prev.filter((m) => m.id !== customMsgId));
+          }
+        },
+      );
+
+      messageSubscriptionsRef.current.set(customMsgId, unsubMsg);
+    } catch (err) {
+      toast.error("Message failed");
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === customMsgId ? { ...m, isFailed: true } : m)),
+      );
+    }
   };
-
-  setMessages((prev) => [...prev, messageObj]);
-
-  try {
-    await sendMessage(
-      activeChat,
-      tempText,
-      userId,
-      authId,
-      activeChatMemberAuthIds,
-      customMsgId,
-    );
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === customMsgId ? { ...m, isOptimistic: false } : m,
-      ),
-    );
-
-    const unsubMsg = listenMessageUpdate(
-      activeChat,
-      customMsgId,
-      (updatedMsg) => {
-        if (updatedMsg) {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === customMsgId ? updatedMsg : m)),
-          );
-        } else {
-          setMessages((prev) => prev.filter((m) => m.id !== customMsgId));
-        }
-      },
-    );
-
-    messageSubscriptionsRef.current.set(customMsgId, unsubMsg);
-  } catch (err) {
-    toast.error("Message failed");
-
-    setMessages((prev) =>
-      prev.map((m) => (m.id === customMsgId ? { ...m, isFailed: true } : m)),
-    );
-  }
-};
 
   const handleStartChat = async (targetUserId, targetauthId) => {
     setStartChatLoading(true);
@@ -533,7 +556,7 @@ const Chats = () => {
 
   const handleStartEdit = (msg) => {
     setEditingMessage(msg);
-    setText(msg.text);
+    setText(msg?.text);
   };
 
   const handleCancelEdit = () => {
@@ -787,36 +810,44 @@ const Chats = () => {
           <Loader />
         ) : (
           <>
-            <div className="chat-topbar">
-              {activeChatData?.type === "group" ? (
-                <>
+            {activeChatData?.type === "group" ? (
+              <div
+                style={{ justifyContent: "space-between" }}
+                className="chat-topbar"
+              >
+                <div style={{ flexDirection: "row", gap: "10px" }}>
                   <Hash size={18} />
                   <div>
                     <h4>{activeChatData?.name || "Unnamed Group"}</h4>
                   </div>
-                </>
-              ) : (
-                <>
-                  <ProfileImage
-                    Image={
-                      activeChatUser?.ProfileImage ||
-                      IMAGES[activeChatUser?.placeId] ||
-                      IMAGES.PlaceHolder
-                    }
-                    className="chat-topbar-avatar"
-                    style={{ border: "none" }}
-                  />
-                  <div>
-                    <h4>
-                      {activeChatUser?.fullName ||
-                        activeChatUser?.email ||
-                        "Unknown User"}
-                    </h4>
-                    <p className="chat-topbar-sub">{activeChatUser?.email}</p>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+                <SelectChatDetails
+                  selectedChat={activeChatData}
+                  chatUsers={selectedChatUsers}
+                  onEdit={() => setEditingGroup(activeChatData)}
+                />
+              </div>
+            ) : (
+              <div className="chat-topbar">
+                <ProfileImage
+                  Image={
+                    activeChatUser?.ProfileImage ||
+                    IMAGES[activeChatUser?.placeId] ||
+                    IMAGES.PlaceHolder
+                  }
+                  className="chat-topbar-avatar"
+                  style={{ border: "none" }}
+                />
+                <div>
+                  <h4>
+                    {activeChatUser?.fullName ||
+                      activeChatUser?.email ||
+                      "Unknown User"}
+                  </h4>
+                  <p className="chat-topbar-sub">{activeChatUser?.email}</p>
+                </div>
+              </div>
+            )}
             <div
               className="chat-messages"
               ref={chatContainerRef}
@@ -868,7 +899,7 @@ const Chats = () => {
                         <div className="chat-bubble-wrapper">
                           {!isMe && activeChatData?.type === "group" && (
                             <UserHoverPortable userId={user?.docId}>
-                              <span className="chat-username elepsis">
+                              <span className="chat-username elepsis user-hover-child">
                                 {user?.fullName || "N/A"}
                               </span>
                             </UserHoverPortable>
@@ -894,7 +925,7 @@ const Chats = () => {
                             }
                           >
                             <div className="chat-text style-import">
-                              {renderMessage(msg.text)}
+                              {renderMessage(msg?.text)}
                             </div>
                             <span
                               style={{ justifyContent: isMe ? "end" : "" }}
@@ -1017,10 +1048,15 @@ const Chats = () => {
           </>
         )}
       </div>
-      {isCreating && (
+      {(isCreating || editingGroup) && (
         <CreateGroupModel
           userslist={allUsers}
-          onClose={() => setIsCreating(false)}
+          onClose={() => {
+            setIsCreating(false);
+            setEditingGroup(null);
+          }}
+          isEdit={!!editingGroup}
+          groupData={editingGroup}
         />
       )}
     </div>
@@ -1029,12 +1065,31 @@ const Chats = () => {
 
 export default Chats;
 
-const CreateGroupModel = ({ userslist = [], onClose }) => {
+const CreateGroupModel = ({
+  userslist = [],
+  onClose,
+  isEdit = false,
+  groupData = null,
+}) => {
   const { currentUser } = useAuth();
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isEdit && groupData) {
+      setGroupName(groupData?.name || "");
+
+      const selectedUsers = userslist.filter(
+        (u) =>
+          groupData.members?.includes(u.docId) &&
+          u.docId !== currentUser?.userId,
+      );
+
+      setGroupMembers(selectedUsers);
+    }
+  }, [isEdit, groupData, userslist, currentUser]);
 
   const handleCreateGroup = async () => {
     if (groupName.trim() === "") return toast.error("Channel name is required");
@@ -1057,20 +1112,31 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
     ];
     try {
       setLoading(true);
-      const res = await createChat(
-        membersDocId,
-        membersAuthId,
-        "group",
-        groupName,
-        currentUser?.userId,
-      );
-      toast.success("Group Created Successfully.");
-      onClose();
+      if (isEdit) {
+        await UpdateGroup(groupData.chatId, {
+          name: groupName,
+          members: membersDocId,
+          membersWithAuth: membersAuthId,
+        });
+
+        toast.success("Group updated successfully");
+      } else {
+        await createChat(
+          membersDocId,
+          membersAuthId,
+          "group",
+          groupName,
+          currentUser?.userId,
+        );
+
+        toast.success("Group created successfully");
+      }
     } catch (err) {
       console.log("Failed to create group:", err);
-      toast.error("Failed to create group, try again later.");
+      toast.error(isEdit ? "Update failed" : "Create failed");
     } finally {
       setLoading(false);
+      onClose();
     }
   };
 
@@ -1173,9 +1239,7 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
           <div className="group-create-container">
             {filteredUsers?.length > 0 ? (
               filteredUsers.map((user, index) => {
-                const isSelected = groupMembers?.some(
-                  (u) => u.id === user.id,
-                );
+                const isSelected = groupMembers?.some((u) => u.id === user.id);
 
                 return (
                   <div
@@ -1228,7 +1292,13 @@ const CreateGroupModel = ({ userslist = [], onClose }) => {
               className="leave-submit-btn"
               style={{ opacity: loading ? "0.8" : "" }}
             >
-              {loading ? "Creating..." : "Create Channel"}
+              {loading
+                ? isEdit
+                  ? "Updating..."
+                  : "Creating..."
+                : isEdit
+                  ? "Update Channel"
+                  : "Create Channel"}
             </button>
           </div>
         </div>
@@ -1293,5 +1363,169 @@ const DeletConfirm = ({ onClose, onDelete }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const SelectChatDetails = ({ selectedChat = null, chatUsers = [], onEdit }) => {
+  const { currentUser } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const sidebarRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  if (!selectedChat) return null;
+
+  const createdByUser = chatUsers.find(
+    (u) => u.docId === selectedChat.createdBy,
+  );
+
+  return (
+    <>
+      <button onClick={() => setIsOpen(true)} className="chat-topbar-btn">
+        <span className="icon">
+          <EllipsisVertical size={22} />
+        </span>
+      </button>
+
+      <div
+        ref={sidebarRef}
+        className={`chat-info-sidebar ${isOpen ? "open" : ""}`}
+      >
+        <div className="chat-info-header">
+          <div className="chat-info-title">
+            <span>#</span>
+            <h3>{selectedChat?.name}</h3>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "end",
+              alignItems: "center",
+              gap: "5px",
+            }}
+          >
+            {currentUser?.userId === selectedChat?.createdBy ? (
+              <button className="chat-topbar-btn" onClick={() => onEdit()}>
+                <Edit size={18} />
+              </button>
+            ) : (
+              <button className="chat-topbar-btn" onClick={() => onEdit()}>
+                <LogOut size={18} />
+              </button>
+            )}
+            <button
+              className="chat-topbar-btn"
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="icon">
+                <X size={18} />
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="chat-info-sub">
+          <span className="chat-info-badge">Channel</span>
+          <span>{chatUsers.length} members</span>
+        </div>
+
+        <div className="chat-info-section">
+          <p className="chat-info-section-title">ABOUT</p>
+
+          <div className="chat-info-row">
+            <Calendar size={16} />
+            <div>
+              <p>Created</p>
+              <span>
+                {new Date(
+                  selectedChat.createdAt?.seconds * 1000,
+                ).toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          <div className="chat-info-row">
+            <Shield size={16} />
+            <div>
+              <p>Created by</p>
+              <UserHoverPortable userId={selectedChat?.createdBy}>
+                <div className="user-hover-child chat-info-member-info">
+                  <div className="chat-info-member-name">
+                    {createdByUser?.fullName || "Unknown"}
+                  </div>
+                  <span>{createdByUser?.email || "N/A"}</span>
+                </div>
+              </UserHoverPortable>
+            </div>
+          </div>
+
+          <div className="chat-info-row">
+            <MessageSquare size={16} />
+            <div>
+              <p>Last message</p>
+              {renderMessage(selectedChat?.lastMessage?.text || "") || "N/A"}
+              <small>
+                {selectedChat?.lastMessage?.createdAt &&
+                  new Date(
+                    selectedChat.lastMessage.createdAt.seconds * 1000,
+                  ).toLocaleString()}
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <div className="chat-info-section">
+          <div className="chat-info-members-header">
+            <p className="chat-info-section-title">MEMBERS</p>
+            <span>{chatUsers?.length || 0}</span>
+          </div>
+
+          <div className="chat-info-members">
+            {chatUsers?.map((user) => (
+              <div key={user?.docId} className="chat-info-member">
+                <ProfileImage
+                  Image={
+                    user?.ProfileImage ||
+                    IMAGES[user?.placeId] ||
+                    IMAGES.PlaceHolder
+                  }
+                  className="chat-info-avatar"
+                />
+                <UserHoverPortable userId={user?.docId}>
+                  <div className="user-hover-child chat-info-member-info">
+                    <div className="chat-info-member-name">
+                      {user?.fullName || "N/A"}
+                      {(user.docId === selectedChat.createdBy ||
+                        user.docId === currentUser?.userId) && (
+                        <span className="chat-info-admin-badge">
+                          {user.docId === selectedChat.createdBy
+                            ? "Admin"
+                            : "You"}
+                        </span>
+                      )}
+                    </div>
+                    <span>{user?.email || "N/A"}</span>
+                  </div>
+                </UserHoverPortable>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
   );
 };

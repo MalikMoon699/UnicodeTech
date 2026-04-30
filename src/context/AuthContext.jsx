@@ -225,7 +225,7 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async ({ email, password }) => {
     const res = await signInWithEmailAndPassword(auth, email, password);
-    const user = res.user;
+    const user = res?.user;
     const indexRef = doc(db, "UserIndex", user.uid);
     const indexSnap = await getDoc(indexRef);
     if (!indexSnap.exists()) throw new Error("User not found");

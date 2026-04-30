@@ -3,6 +3,7 @@ import "./assets/style/Style.css";
 import { ProtectedRoute, PublicRoute } from "./routes/RouteGuards.jsx";
 import AppLayout from "./layout/AppLayout.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import TestingPage from "./pages/TestingPage.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Auth from "./auth/Auth.jsx";
 import Setting from "./pages/Settings.jsx";
@@ -194,6 +195,7 @@ const App = () => {
       </Route>
 
       <Route path="/" element={<LandingPage />} />
+      <Route path="/testing" element={<TestingPage />} />
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

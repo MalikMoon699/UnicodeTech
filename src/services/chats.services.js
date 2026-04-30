@@ -71,42 +71,44 @@ export const UpdateGroup = async (
   chatId,
   { name, members, membersWithAuth },
 ) => {
-  const chatRef = doc(db, "chats", chatId);
+  try {
+    const chatRef = doc(db, "chats", chatId);
 
-  const chatSnap = await getDoc(chatRef);
-  if (!chatSnap.exists()) throw new Error("Chat not found");
+    const chatSnap = await getDoc(chatRef);
+    if (!chatSnap.exists()) throw new Error("Chat not found");
+    const prevMembers = chatSnap.data().membersWithAuth || [];
 
-  const prevMembers = chatSnap.data().members || [];
+    const added = membersWithAuth.filter((m) => !prevMembers.includes(m));
+    const removed = prevMembers.filter((m) => !membersWithAuth.includes(m));
+    const batch = writeBatch(db);
 
-  const added = members.filter((m) => !prevMembers.includes(m));
-  const removed = prevMembers.filter((m) => !members.includes(m));
+    batch.update(chatRef, {
+      name,
+      members,
+      membersWithAuth,
+    });
 
-  const batch = writeBatch(db);
-
-  batch.update(chatRef, {
-    name,
-    members,
-    membersWithAuth,
-  });
-
-  for (const authId of membersWithAuth) {
-    if (added.includes(authId)) {
-      const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
-      batch.set(userChatRef, {
-        chatId,
-        members,
-        lastSeen: null,
-        unreadCount: 0,
-      });
+    for (const authId of added) {
+      if (added.includes(authId)) {
+        const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
+        batch.set(userChatRef, {
+          chatId,
+          members,
+          lastSeen: null,
+          unreadCount: 0,
+        });
+      }
     }
-  }
 
-  for (const authId of removed) {
-    const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
-    batch.delete(userChatRef);
-  }
+    for (const authId of removed) {
+      const userChatRef = doc(db, "UserIndex", authId, "chats", chatId);
+      batch.delete(userChatRef);
+    }
 
-  await batch.commit();
+    await batch.commit();
+  } catch (err) {
+    throw err;
+  }
 };
 
 export const DeleteGroup = async (chatId) => {
@@ -327,24 +329,47 @@ export const listenMessages = (chatId, callback) => {
 export const listenUserChats = (authId, callback) => {
   if (!authId) return () => {};
 
-  const ref = collection(db, "UserIndex", authId, "chats");
+  const userChatsRef = collection(db, "UserIndex", authId, "chats");
 
-  return onSnapshot(ref, async (snap) => {
-    const chats = await Promise.all(
-      snap.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        const chatRef = await getDoc(doc(db, "chats", data.chatId));
+  let chatUnsubs = [];
 
-        return {
-          id: docSnap.id,
-          ...data,
-          ...chatRef.data(),
-        };
-      }),
-    );
+  const unsubscribe = onSnapshot(userChatsRef, (snap) => {
+    chatUnsubs.forEach((u) => u());
+    chatUnsubs = [];
 
-    callback(chats);
+    const chatsMap = new Map();
+
+    if (snap.empty) {
+      callback([]);
+      return;
+    }
+
+    snap.docs.forEach((userChatDoc) => {
+      const userChatData = userChatDoc.data();
+      const chatId = userChatData.chatId;
+
+      const unsub = onSnapshot(doc(db, "chats", chatId), (chatSnap) => {
+        if (!chatSnap.exists()) {
+          chatsMap.delete(chatId);
+        } else {
+          chatsMap.set(chatId, {
+            id: userChatDoc.id,
+            ...userChatData,
+            ...chatSnap.data(),
+          });
+        }
+
+        callback(Array.from(chatsMap.values()));
+      });
+
+      chatUnsubs.push(unsub);
+    });
   });
+
+  return () => {
+    unsubscribe();
+    chatUnsubs.forEach((u) => u());
+  };
 };
 
 export const listenActiveUsers = (callback) => {
