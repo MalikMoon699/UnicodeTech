@@ -87,7 +87,7 @@ export const listenAdminRequestsFirstPage = ({
     console.error("Admin first page error:", error);
     throw error;
   }
-};
+}
 
 export const loadMoreAdminRequests = async ({
   currentUserId,

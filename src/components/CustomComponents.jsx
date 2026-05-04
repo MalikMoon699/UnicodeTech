@@ -616,11 +616,15 @@ export const Tabs = ({
   tab,
   setTab,
   options,
+  style,
   outerWidth = "100%",
   innerWidth = "fit-content",
 }) => {
   return (
-    <div style={{ width: outerWidth }} className="custom-tab-outer-container">
+    <div
+      style={{ ...style, width: outerWidth }}
+      className="custom-tab-outer-container"
+    >
       <div style={{ width: innerWidth }} className="custom-tab-inner-container">
         {options?.map((item, index) => {
           const isActive = item?.value === tab;
@@ -961,7 +965,11 @@ export const UserHoverPortable = ({ userId, children, delay = 300 }) => {
           <div className="user-hover-user-info">
             <ProfileImage
               className="user-hover-image"
-              Image={data?.profileImage||IMAGES[data?.placeId] || IMAGES.PlaceHolder}
+              Image={
+                data?.profileImage ||
+                IMAGES[data?.placeId] ||
+                IMAGES.PlaceHolder
+              }
             />
             <div className="user-hover-user-info-container">
               <p>{data?.fullName || "N/A"}</p>

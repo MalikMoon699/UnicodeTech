@@ -3,18 +3,23 @@ import {
   Header,
   LoadMore,
   StatesCard,
+  Tabs,
 } from "../../components/CustomComponents";
 import { LeaveRequestModal } from "../../components/Attendance.components";
 import {
+  Building,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarPlus,
   CalendarX,
+  User,
 } from "lucide-react";
 import {
   getLeaveStatsByUserId,
+  listenOfficeLeavesFirstPage,
   listenRequestsFirstPage,
+  loadMoreOfficeLeavesRequests,
   loadMoreRequests,
   submitLeaveRequest,
 } from "../../services/manager/leave.services";
@@ -26,6 +31,7 @@ import { useTheme } from "../../context/ThemeContext";
 const Leaves = () => {
   const { currentUser } = useAuth();
   const { limit } = useTheme();
+  const [tab, setTab] = useState("my");
   const [leaveStats, setLeaveStats] = useState(null);
   const [requests, setRequests] = useState([]);
   const [loadingStates, setLoadingStates] = useState(false);
@@ -34,6 +40,14 @@ const Leaves = () => {
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [isApply, setIsApply] = useState(false);
+
+  const handleTabChange = (value) => {
+    setTab(value);
+    setRequests([]);
+    setLastDoc(null);
+    setHasMore(false);
+    setLoading(true);
+  };
 
   useEffect(() => {
     setLoadingStates(true);
@@ -51,35 +65,56 @@ const Leaves = () => {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = listenRequestsFirstPage({
-      userId: currentUser.userId,
-      pageLimit: limit,
-      callback: ({ data, lastDoc, hasMore }) => {
-        setRequests(data);
-        setLastDoc(lastDoc);
-        setHasMore(hasMore);
-        setLoading(false);
-      },
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (tab === "my") {
+      const unsubscribe = listenRequestsFirstPage({
+        userId: currentUser.userId,
+        pageLimit: limit,
+        callback: ({ data, lastDoc, hasMore }) => {
+          setRequests(data);
+          setLastDoc(lastDoc);
+          setHasMore(hasMore);
+          setLoading(false);
+        },
+      });
+      return () => unsubscribe();
+    } else {
+      const unsubscribe = listenOfficeLeavesFirstPage({
+        userId: currentUser.userId,
+        pageLimit: limit,
+        callback: ({ data, lastDoc, hasMore }) => {
+          setRequests(data);
+          setLastDoc(lastDoc);
+          setHasMore(hasMore);
+          setLoading(false);
+        },
+      });
+      return () => unsubscribe();
+    }
+  }, [tab]);
 
   const loadMoreRecords = async () => {
     if (!lastDoc) return;
 
     setLoadingMore(true);
-
-    const res = await loadMoreRequests({
-      userId: currentUser.userId,
-      pageLimit: limit,
-      lastDoc,
-    });
-
-    setRequests((prev) => [...prev, ...res.data]);
-    setLastDoc(res.lastDoc);
-    setHasMore(res.hasMore);
-
+    if (tab === "my") {
+      const res = await loadMoreRequests({
+        userId: currentUser.userId,
+        pageLimit: limit,
+        lastDoc,
+      });
+      setRequests((prev) => [...prev, ...res.data]);
+      setLastDoc(res.lastDoc);
+      setHasMore(res.hasMore);
+    } else {
+      const res = await loadMoreOfficeLeavesRequests({
+        userId: currentUser.userId,
+        pageLimit: limit,
+        lastDoc,
+      });
+      setRequests((prev) => [...prev, ...res.data]);
+      setLastDoc(res.lastDoc);
+      setHasMore(res.hasMore);
+    }
     setLoadingMore(false);
   };
 
@@ -133,11 +168,21 @@ const Leaves = () => {
           loading={loadingStates}
         />
       </div>
+      <Tabs
+        disabled={loading}
+        tab={tab}
+        setTab={handleTabChange}
+        style={{ padding: "0px 5px 10px" }}
+        options={[
+          { label: "My leaves", value: "my", icon: User },
+          { label: "By office", value: "office", icon: Building },
+        ]}
+      />
       {loading ? (
         <Loader style={{ marginTop: "30px", height: "70vh" }} />
       ) : (
         <>
-          <LeaveList leaves={requests} />
+          <LeaveList leaves={requests} type={tab === "my" ? "user" : "admin"} />
           <LoadMore
             loading={loadingMore}
             disabled={loadingMore || loading}

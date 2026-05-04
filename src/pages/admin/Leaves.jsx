@@ -125,6 +125,7 @@ const Leaves = () => {
 
     setLoadingMore(false);
   };
+  
 
   return (
     <div className="page-container">

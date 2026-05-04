@@ -17,6 +17,25 @@ import {
 import { generateCustomId } from "../../utils/helper";
 import { handleSendNotification } from "../../utils/extensions/Notification.extensions";
 
+const getUsersMapByIds = async (userIds = []) => {
+  if (!userIds.length) return {};
+
+  const q = query(
+    collection(db, "UserIndex"),
+    where("docId", "in", userIds.slice(0, 10)),
+  );
+
+  const snapshot = await getDocs(q);
+
+  const map = {};
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    map[data.docId] = data;
+  });
+
+  return map;
+};
+
 export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
   try {
     let status = "pending";
@@ -290,13 +309,134 @@ export const getLeaveById = async (id) => {
     const ref = doc(db, "leaveRequests", id);
     const snap = await getDoc(ref);
 
-    if (snap.exists()) {
-      return { id: snap.id, ...snap.data() };
-    } else {
+    if (!snap.exists()) {
       throw new Error("Leave not found");
     }
+
+    const leave = {
+      id: snap.id,
+      ...snap.data(),
+    };
+
+    const usersMap = await getUsersMapByIds([leave.createdBy]);
+
+    return {
+      ...leave,
+      user: usersMap[leave.createdBy] || null,
+    };
   } catch (err) {
     console.error("getLeaveById error:", err);
     throw err;
   }
+};
+
+
+export const listenOfficeLeavesFirstPage = ({
+  userId,
+  pageLimit = 10,
+  status = "",
+  callback,
+}) => {
+  try {
+    const constraints = [
+      where("users", "array-contains", userId),
+      where("createdBy", "!=", userId),
+    ];
+
+    if (status) {
+      constraints.push(where("status", "==", status));
+    }
+
+    constraints.push(orderBy("createdAt", "desc"), limit(pageLimit + 1));
+
+    const q = query(collection(db, "leaveRequests"), ...constraints);
+
+    return onSnapshot(q, async (snapshot) => {
+      const docs = snapshot.docs;
+
+      const hasMore = docs.length > pageLimit;
+      const sliced = hasMore ? docs.slice(0, pageLimit) : docs;
+
+      const rawData = sliced.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      const userIds = [
+        ...new Set(rawData.map((item) => item.createdBy).filter(Boolean)),
+      ];
+
+      const usersMap = await getUsersMapByIds(userIds);
+
+      const data = rawData.map((item) => ({
+        ...item,
+        user: usersMap[item.createdBy] || null,
+      }));
+
+      const lastDoc = sliced[sliced.length - 1] || null;
+
+      callback({
+        data,
+        lastDoc,
+        hasMore,
+      });
+    });
+  } catch (error) {
+    console.error("Error fetching requests:", error);
+    throw error;
+  }
+};
+
+export const loadMoreOfficeLeavesRequests = async ({
+  userId,
+  pageLimit = 10,
+  lastDoc,
+  status = "",
+}) => {
+   const constraints = [
+     where("users", "array-contains", userId),
+     where("createdBy", "!=", userId),
+   ];
+
+  if (status) {
+    constraints.push(where("status", "==", status));
+  }
+
+  constraints.push(
+    orderBy("createdAt", "desc"),
+    startAfter(lastDoc),
+    limit(pageLimit + 1),
+  );
+
+  const q = query(collection(db, "leaveRequests"), ...constraints);
+
+  const snapshot = await getDocs(q);
+
+  const docs = snapshot.docs;
+
+  const hasMore = docs.length > pageLimit;
+  const sliced = hasMore ? docs.slice(0, pageLimit) : docs;
+
+  const rawData = sliced.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  const userIds = [
+    ...new Set(rawData.map((item) => item.createdBy).filter(Boolean)),
+  ];
+
+  const usersMap = await getUsersMapByIds(userIds);
+  const data = rawData.map((item) => ({
+    ...item,
+    user: usersMap[item.createdBy] || null,
+  }));
+
+  const newLastDoc = sliced.length ? sliced[sliced.length - 1] : null;
+
+  return {
+    data,
+    lastDoc: newLastDoc,
+    hasMore,
+  };
 };

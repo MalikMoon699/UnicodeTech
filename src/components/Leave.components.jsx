@@ -109,7 +109,8 @@ export const LeaveList = ({ leaves, isBoss = false, type = "user" }) => {
     return counts;
   };
 
-  const isAdmin = type === "admin";
+  const isAdmin =
+    type === "admin" || (leaveIdFromUrl && currentUser?.role === "admin");
 
   return (
     <div className="leave-container">
@@ -124,7 +125,6 @@ export const LeaveList = ({ leaves, isBoss = false, type = "user" }) => {
               onContextMenu={(e) => {
                 e.preventDefault();
                 const leaveData = leave;
-                const isBoss = type === "boss";
                 if (!isBoss) {
                   const allPending = leaveData?.dates?.every(
                     (item) => item.status === "pending",
@@ -230,6 +230,8 @@ export const LeaveList = ({ leaves, isBoss = false, type = "user" }) => {
                       setContextMenu(null);
 
                       toast("Are you sure you want to delete this leave?", {
+                        duration: Infinity,
+                        className: "confirm-toast",
                         action: {
                           label: "Delete",
                           onClick: async () => {

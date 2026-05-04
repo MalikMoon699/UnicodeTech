@@ -197,3 +197,19 @@ body {
   background-color: #3b82f6 !important;
   color: #ffffff !important;
 }
+
+[data-sonner-toast][data-styled="true"] [data-cancel] {
+  background-color: var(--muted-foreground);
+  color: #fff;
+}
+
+[data-sonner-toast][data-styled="true"] [data-action] {
+  background-color: var(--status-rejected);
+  color: #fff;
+}
+
+.confirm-toast {
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+}
