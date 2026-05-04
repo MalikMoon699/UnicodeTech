@@ -38,7 +38,7 @@ import { useRealtimeNotifications } from "./utils/hooks/useRealtimeNotifications
 const App = () => {
   const { currentUser } = useAuth();
   usePresence(currentUser);
-   useRealtimeNotifications(currentUser);
+  useRealtimeNotifications(currentUser);
 
   useEffect(() => {
     initMessaging(Push_Notification_Api);

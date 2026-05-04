@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Loader from "../components/Loader";
 import { Input } from "../components/CustomComponents";
 import { useAuth } from "../context/AuthContext";
+import { getAuthErrorMessage } from "../utils/helper";
 
 const SignIn = ({ setFormType }) => {
   const { signIn } = useAuth();
@@ -35,16 +36,20 @@ const SignIn = ({ setFormType }) => {
     setLoading(true);
     try {
       await signIn({ email, password });
+
       toast.success("Login successful!");
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
-      if (err.message !== "No show") toast.error(err.message || "Login failed");
+      if (err.message !== "No show") {
+        const message = getAuthErrorMessage(err);
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="signin-left">
       <div className="signin-left-inner">

@@ -12,6 +12,8 @@ import {
   serverTimestamp,
   onSnapshot,
   updateDoc,
+  getDocs,
+  collection,
 } from "firebase/firestore";
 import { auth, db } from "../utils/FirebaseConfig";
 import {
@@ -24,16 +26,19 @@ import { toast } from "sonner";
 import {
   addFcmToken,
   handleGetToken,
+  handleSendNotification,
 } from "../utils/extensions/Notification.extensions";
 
 const AuthCtx = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
+
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentUser, setCurrentUser] = useState(null);
   const [authAllow, setAuthAllow] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+
   const skipSyncRef = useRef(false);
 
   useEffect(() => {
@@ -75,21 +80,11 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        const { collection: col, docId } = indexSnap.data();
-
-        const userSnap = await getDoc(doc(db, col, docId));
-
-        if (!userSnap.exists()) {
-          setCurrentUser(null);
-          setAuthAllow(false);
-          setAuthLoading(false);
-          return;
-        }
-
-        const data = userSnap.data();
+        const data = indexSnap.data();
 
         if (data.status !== "active") {
           await signOut(auth);
+
           toast.error(
             data.status === "pending"
               ? "Account pending approval"
@@ -103,9 +98,9 @@ export const AuthProvider = ({ children }) => {
         }
 
         setCurrentUser({
+          authId: user.uid,
           ...data,
-          docId,
-          roleCollection: col,
+          userId: data?.docId,
         });
 
         setAuthAllow(true);
@@ -122,27 +117,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      reCheckToken();
-    }
+    if (!currentUser?.authId) return;
+
+    const syncToken = async () => {
+      const indexRef = doc(db, "UserIndex", currentUser.authId);
+      const token = await handleGetToken();
+
+      if (token) {
+        await addFcmToken(indexRef, token);
+      }
+    };
+
+    syncToken();
   }, [currentUser]);
 
-  const reCheckToken = async () => {
-    const indexRef = doc(db, "UserIndex", currentUser?.authId);
-    const userRef = doc(db, currentUser?.roleCollection, currentUser?.docId);
-    const token = await handleGetToken();
-    if (token) {
-      await Promise.all([
-        addFcmToken(userRef, token),
-        addFcmToken(indexRef, token),
-      ]);
-    }
-  };
-
   useEffect(() => {
-    if (!currentUser?.roleCollection || !currentUser?.docId) return;
+    if (!currentUser?.authId) return;
 
-    const userRef = doc(db, currentUser.roleCollection, currentUser.docId);
+    const userRef = doc(db, "UserIndex", currentUser.authId);
 
     const unsubscribe = onSnapshot(userRef, async (snap) => {
       if (!snap.exists()) return;
@@ -151,12 +143,16 @@ export const AuthProvider = ({ children }) => {
 
       if (data.status !== "active") {
         await signOut(auth);
+
         setCurrentUser(null);
         setAuthAllow(false);
+
         if (data.status === "banned") {
           toast.error("You are banned");
         } else if (data.status === "pending") {
           toast.info("Account pending approval.");
+        } else {
+          toast.error("Account disabled.");
         }
 
         navigate("/auth", { replace: true });
@@ -164,14 +160,14 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, [currentUser?.docId, currentUser?.roleCollection]);
+  }, [currentUser?.authId]);
 
   const signUp = async ({ name, email, password }) => {
     const res = await createUserWithEmailAndPassword(auth, email, password);
-
     const authUser = res.user;
+
     const userId = await generateCustomId("Users");
-    const PlaceId = generatePlaceId();
+    const placeId = generatePlaceId();
 
     const userData = {
       authId: authUser.uid,
@@ -184,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       email,
       role: "user",
       profileImage: "",
-      placeId: PlaceId,
+      placeId,
       status: "pending",
       createdAt: serverTimestamp(),
       isOnline: true,
@@ -200,63 +196,58 @@ export const AuthProvider = ({ children }) => {
       fullName: name,
       email,
       profileImage: "",
-      placeId: PlaceId,
+      placeId,
       docId: userId,
       status: "pending",
-      searchText: [
-        ...generateSearchTokens(name),
-        ...generateSearchTokens(email),
-      ],
+      searchText: userData.searchText,
       createdAt: serverTimestamp(),
+    });
+
+    const adminSnap = await getDocs(collection(db, "Admins"));
+    const adminIds = adminSnap.docs.map((doc) => doc.id);
+
+    handleSendNotification({
+      title: "New User Signup",
+      body: `${name} just created an account`,
+      link: "/admin/users",
+      userIds: adminIds,
     });
     skipSyncRef.current = true;
 
-    const finalUser = {
-      ...userData,
-      docId: userId,
-      roleCollection: "Users",
-    };
+    setCurrentUser(null);
+    setAuthAllow(false);
 
-    setCurrentUser(finalUser);
-    setAuthAllow(true);
-
-    return finalUser;
+    return userData;
   };
 
   const signIn = async ({ email, password }) => {
     const res = await signInWithEmailAndPassword(auth, email, password);
-    const user = res?.user;
+    const user = res.user;
+
     const indexRef = doc(db, "UserIndex", user.uid);
     const indexSnap = await getDoc(indexRef);
+
     if (!indexSnap.exists()) throw new Error("User not found");
-    const { collection: col, docId } = indexSnap.data();
-    const userRef = doc(db, col, docId);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) throw new Error("User not found");
-    const data = userSnap.data();
-    if (data.status !== "active") {
+
+    const userData = indexSnap.data();
+
+    if (userData.status !== "active") {
       await signOut(auth);
       throw new Error("No show");
-    }
-    if ("serviceWorker" in navigator) {
-      await navigator.serviceWorker.ready;
     }
 
     const token = await handleGetToken();
     if (token) {
-      await Promise.all([
-        addFcmToken(userRef, token),
-        addFcmToken(indexRef, token),
-      ]);
+      await addFcmToken(indexRef, token);
     }
 
     skipSyncRef.current = true;
 
     const finalUser = {
-      ...data,
-      docId,
-      roleCollection: col,
+      authId: user.uid,
+      ...userData,
       fcmToken: token,
+      userId: userData?.docId,
     };
 
     setCurrentUser(finalUser);
@@ -269,53 +260,44 @@ export const AuthProvider = ({ children }) => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const indexSnap = await getDoc(doc(db, "UserIndex", user.uid));
-    if (!indexSnap.exists()) return;
+    const snap = await getDoc(doc(db, "UserIndex", user.uid));
+    if (!snap.exists()) return;
+    const userData = snap.data();
 
-    const { collection: col, docId } = indexSnap.data();
-
-    const userSnap = await getDoc(doc(db, col, docId));
-
-    if (userSnap.exists()) {
-      setCurrentUser({
-        ...userSnap.data(),
-        docId,
-        roleCollection: col,
-      });
-    }
+    setCurrentUser({
+      authId: user.uid,
+      ...userData,
+      userId: userData?.docId,
+    });
   };
 
   const logout = async () => {
     try {
       const user = auth.currentUser;
-      if (user) {
-        const indexRef = doc(db, "UserIndex", user.uid);
-        const indexSnap = await getDoc(indexRef);
 
+      if (user) {
+        const ref = doc(db, "UserIndex", user.uid);
         const token = await handleGetToken();
-        if (indexSnap.exists()) {
-          const { collection: col, docId } = indexSnap.data();
-          const userRef = doc(db, col, docId);
-          const removeToken = async (ref) => {
-            const snap = await getDoc(ref);
+
+        if (token) {
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
             const data = snap.data();
-            const existing = data?.fcmTokens || [];
-            const updated = existing.filter((t) => t !== token);
+            const updated = (data.fcmTokens || []).filter((t) => t !== token);
+
             await updateDoc(ref, {
               fcmTokens: updated,
               fcmUpdatedAt: new Date(),
             });
-          };
-
-          if (token) {
-            await Promise.all([removeToken(indexRef), removeToken(userRef)]);
           }
         }
       }
 
       await signOut(auth);
+
       setCurrentUser(null);
       setAuthAllow(false);
+
       navigate("/auth");
     } catch (err) {
       console.error("Logout error:", err);

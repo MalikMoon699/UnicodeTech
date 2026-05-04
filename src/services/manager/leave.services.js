@@ -11,8 +11,11 @@ import {
   startAfter,
   onSnapshot,
   getDocs,
+  getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { generateCustomId } from "../../utils/helper";
+import { handleSendNotification } from "../../utils/extensions/Notification.extensions";
 
 export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
   try {
@@ -25,7 +28,7 @@ export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
       date.setDate(date.getDate() + 1);
       return date.toISOString().split("T")[0];
     });
-    
+
     const dates = requestData.duration.map((item) => ({
       date: new Date(item.date).toISOString(),
       status,
@@ -46,9 +49,116 @@ export const submitLeaveRequest = async ({ requestData, type = "user" }) => {
       updatedAt: serverTimestamp(),
     };
     await setDoc(doc(db, "leaveRequests", customId), payload);
+
+    if (type === "boss") {
+      handleSendNotification({
+        title: "New leave request",
+        body: requestData.reason,
+        link: `/leaves?leaveId=${customId}`,
+        userIds: requestData.userIds,
+      });
+    } else {
+      const adminSnap = await getDocs(collection(db, "Admins"));
+      const adminIds = adminSnap.docs.map((doc) => doc.id);
+
+      handleSendNotification({
+        title: "New leave request",
+        body: requestData.reason,
+        link: `/leaves?leaveId=${customId}`,
+        userIds: adminIds,
+      });
+    }
     return { success: true, id: customId };
   } catch (error) {
     console.error("Error submitting leave request:", error);
+    throw error;
+  }
+};
+
+export const updateLeave = async ({ leaveId, updates, type = "user" }) => {
+  try {
+    const leaveRef = doc(db, "leaveRequests", leaveId);
+    const leaveSnap = await getDoc(leaveRef);
+
+    if (!leaveSnap.exists()) {
+      throw new Error("Leave request not found");
+    }
+
+    const leaveData = leaveSnap.data();
+
+    if (type !== "boss") {
+      const allPending = leaveData?.dates?.every(
+        (item) => item.status === "pending",
+      );
+
+      if (!allPending) {
+        throw new Error(
+          "Leave already reviewed (partially or fully). You cannot update it.",
+        );
+      }
+    }
+
+    let updatedPayload = {
+      updatedAt: serverTimestamp(),
+    };
+
+    if (updates.duration) {
+      const leaveDateKeys = updates.duration.map((item) => {
+        const date = new Date(item.date);
+        date.setDate(date.getDate() + 1);
+        return date.toISOString().split("T")[0];
+      });
+
+      const dates = updates.duration.map((item) => ({
+        date: new Date(item.date).toISOString(),
+        status: type === "boss" ? item.status || "approved" : "pending",
+      }));
+
+      updatedPayload.dates = dates;
+      updatedPayload.leaveDateKeys = leaveDateKeys;
+    }
+
+    if (updates.reason !== undefined) {
+      updatedPayload.reason = updates.reason;
+    }
+
+    await setDoc(leaveRef, updatedPayload, { merge: true });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating leave:", error);
+    throw error;
+  }
+};
+
+export const deleteLeave = async ({ leaveId, type = "user" }) => {
+  try {
+    const leaveRef = doc(db, "leaveRequests", leaveId);
+    const leaveSnap = await getDoc(leaveRef);
+
+    if (!leaveSnap.exists()) {
+      throw new Error("Leave request not found");
+    }
+
+    const leaveData = leaveSnap.data();
+
+    if (type !== "boss") {
+      const allPending = leaveData?.dates?.every(
+        (item) => item.status === "pending",
+      );
+
+      if (!allPending) {
+        throw new Error(
+          "Leave already reviewed (partially or fully). You cannot delete it.",
+        );
+      }
+    }
+
+    await deleteDoc(leaveRef);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting leave:", error);
     throw error;
   }
 };
@@ -172,5 +282,21 @@ export const getLeaveStatsByUserId = ({ userId, callback }) => {
   } catch (error) {
     console.error("Error fetching leave stats:", error);
     throw error;
+  }
+};
+
+export const getLeaveById = async (id) => {
+  try {
+    const ref = doc(db, "leaveRequests", id);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    } else {
+      throw new Error("Leave not found");
+    }
+  } catch (err) {
+    console.error("getLeaveById error:", err);
+    throw err;
   }
 };

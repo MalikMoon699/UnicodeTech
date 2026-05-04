@@ -13,6 +13,7 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { handleSendNotification } from "../../utils/extensions/Notification.extensions";
 
 const getUsersMapByIds = async (userIds = []) => {
   if (!userIds.length) return {};
@@ -203,11 +204,25 @@ export const updateLeaveStatus = async ({ leaveId, reviewerId, dates }) => {
       (d) => d.status === "approved" || d.status === "rejected",
     );
 
+    const approvedCount = updatedDates.filter(
+      (d) => d.status === "approved",
+    ).length;
+    const rejectedCount = updatedDates.filter(
+      (d) => d.status === "rejected",
+    ).length;
+
     await updateDoc(leaveRef, {
       dates: updatedDates,
       reviewedBy: reviewerId,
       updatedAt: serverTimestamp(),
       isFullyReviewed: allReviewed,
+    });
+
+    handleSendNotification({
+      title: "Leave Request Updated",
+      body: `Your leave has been reviewed ${approvedCount} approved, ${rejectedCount} rejected`,
+      link: `/leaves?leaveId=${leaveData?.id}`,
+      userIds: [leaveData?.createdBy],
     });
   } catch (error) {
     console.error("Error updating leave:", error);

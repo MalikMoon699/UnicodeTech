@@ -175,8 +175,8 @@ export const getProperRoute = ({ role = "", route = "" }) => {
   if (!route) return route;
 
   const rolePrefixMap = {
-    admin: "/admin",
-    manager: "/manager",
+    admin: "admin",
+    manager: "manager",
   };
 
   const protectedRoutes = [
@@ -188,17 +188,46 @@ export const getProperRoute = ({ role = "", route = "" }) => {
 
   const normalizedRole = role?.toLowerCase();
 
-  if (protectedRoutes.includes(route)) {
+  const [path, queryString] = route.split("?");
+
+  let finalPath = `/${path}`;
+
+  if (protectedRoutes.includes(path)) {
     const prefix = rolePrefixMap[normalizedRole];
     if (prefix) {
-      return `${prefix}/${route}`;
+      finalPath = `/${prefix}/${path}`;
     }
   }
 
-  return `/${route}`;
+  return queryString ? `${finalPath}?${queryString}` : finalPath;
 };
 
 export const generatePlaceId = () => {
-   const randomNum = Math.floor(Math.random() * 10) + 1;
-   return `P${randomNum}`;
- };
+  const randomNum = Math.floor(Math.random() * 10) + 1;
+  return `P${randomNum}`;
+};
+
+export const getAuthErrorMessage = (err) => {
+  const code = err?.code || err?.message;
+
+  switch (code) {
+    case "auth/user-not-found":
+      return "No account found with this email.";
+    case "auth/wrong-password":
+      return "Incorrect password.";
+    case "auth/invalid-credential":
+      return "Invalid email or password.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please try again later.";
+    case "auth/email-already-in-use":
+      return "This email is already registered.";
+    case "auth/invalid-email":
+      return "Invalid email address.";
+    case "auth/weak-password":
+      return "Password should be at least 6 characters.";
+    case "auth/operation-not-allowed":
+      return "Signup is currently disabled.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
+};

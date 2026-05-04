@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Loader from "../components/Loader";
 import { Input } from "../components/CustomComponents";
 import { useAuth } from "../context/AuthContext";
+import { getAuthErrorMessage } from "../utils/helper";
 
 const SignUp = ({ setFormType }) => {
   const { signUp } = useAuth();
@@ -35,22 +36,21 @@ const SignUp = ({ setFormType }) => {
     return true;
   };
 
-  const handleSignUp = async () => {
-    if (!validations()) return;
-
-    setLoading(true);
-
-    try {
-      await signUp({ name, email, password });
-      setFormType("signIn");
-    } catch (err) {
-      console.error(err);
-      toast.error(err.message || "Signup failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const handleSignUp = async () => {
+  if (!validations()) return;
+  setLoading(true);
+  try {
+    await signUp({ name, email, password });
+    toast.success("Account created successfully!");
+    setFormType("signIn");
+  } catch (err) {
+    console.error(err);
+    const message = getAuthErrorMessage(err);
+    toast.error(message);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="signin-left">
       <div className="signin-left-inner">

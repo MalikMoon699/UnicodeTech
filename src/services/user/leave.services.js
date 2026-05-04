@@ -5,6 +5,7 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../../utils/FirebaseConfig";
 
@@ -25,18 +26,13 @@ export const createLeave = async (payload) => {
 };
 
 export const listenUserLeaves = (userId, callback) => {
-  const q = collection(db, "Leaves");
+  const q = query(collection(db, "Leaves"), where("userId", "==", userId));
 
   return onSnapshot(q, (snap) => {
-    const data = [];
-
-    snap.docs.forEach((docSnap) => {
-      const d = docSnap.data();
-
-      if (d.userId === userId) {
-        data.push({ id: docSnap.id, ...d });
-      }
-    });
+    const data = snap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    }));
 
     data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
 

@@ -196,7 +196,11 @@ const Leaves = () => {
         <Loader style={{ marginTop: "30px", height: "70vh" }} />
       ) : (
         <>
-          <LeaveList leaves={requests} type={tab === "my-created" ? "user" : "admin"} />
+          <LeaveList
+            leaves={requests}
+            isBoss={true}
+            type={tab === "my-created" ? "user" : "admin"}
+          />
           <LoadMore
             loading={loadingMore}
             disabled={loadingMore || loading}

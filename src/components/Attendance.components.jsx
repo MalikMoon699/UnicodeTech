@@ -324,7 +324,12 @@ export const CalendarSkeleton = () => {
   );
 };
 
-export const LeaveRequestModal = ({ onClose, onSendRequest }) => {
+export const LeaveRequestModal = ({
+  onClose,
+  onSendRequest,
+  isEdit = false,
+  initialData = null,
+}) => {
   const { currentUser } = useAuth();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -335,6 +340,15 @@ export const LeaveRequestModal = ({ onClose, onSendRequest }) => {
   const [loading, setLoading] = useState(false);
 
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  useEffect(() => {
+    setDuration(
+      initialData?.dates?.map((d) => ({ date: new Date(d.date) })) || [
+        { date: today },
+      ],
+    );
+    setReason(initialData?.reason || "");
+  }, [initialData]);
 
   useEffect(() => {
     setDuration([{ date: today }]);
@@ -429,7 +443,11 @@ export const LeaveRequestModal = ({ onClose, onSendRequest }) => {
           reason,
         },
       });
-      toast.success("Leave request submitted successfully!");
+      toast.success(
+        isEdit
+          ? "Leave updated successfully"
+          : "Leave request submitted successfully!",
+      );
     } catch (error) {
       console.error(error);
       toast.error("Failed to submit leave request. Please try again.");
@@ -538,6 +556,8 @@ export const LeaveRequestModal = ({ onClose, onSendRequest }) => {
             >
               {loading ? (
                 <Loader style={{ width: "88px" }} size={16} color="#fff" />
+              ) : isEdit ? (
+                "Update Request"
               ) : (
                 "Send Request"
               )}
@@ -549,7 +569,12 @@ export const LeaveRequestModal = ({ onClose, onSendRequest }) => {
   );
 };
 
-export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
+export const AdminLeaveCreateModal = ({
+  onClose,
+  onSendRequest,
+  isEdit = false,
+  initialData = null,
+}) => {
   const { currentUser } = useAuth();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -568,6 +593,16 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
   });
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  useEffect(() => {
+    setDuration(
+      initialData?.dates?.map((d) => ({ date: new Date(d.date) })) || [
+        { date: today },
+      ],
+    );
+    setReason(initialData?.reason || "");
+    setSelectedUsers(initialData?.users || []);
+  }, [initialData]);
 
   useEffect(() => {
     loadUsers(debouncedSearchTerm);
@@ -665,7 +700,11 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
         },
         type: "boss",
       });
-      toast.success("Leave request submitted successfully!");
+      toast.success(
+        isEdit
+          ? "Leave updated successfully"
+          : "Leave request submitted successfully!",
+      );
     } catch (error) {
       console.error(error);
       toast.error("Failed to submit leave request. Please try again.");
@@ -949,6 +988,8 @@ export const AdminLeaveCreateModal = ({ onClose, onSendRequest }) => {
             >
               {loading ? (
                 <Loader style={{ width: "88px" }} size={16} color="#fff" />
+              ) : isEdit ? (
+                "Update Request"
               ) : (
                 "Send Request"
               )}

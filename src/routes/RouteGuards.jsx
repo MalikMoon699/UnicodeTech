@@ -19,7 +19,9 @@ export const ProtectedRoute = ({ children, role = [] }) => {
 
   if (!authAllow) return <Navigate to="/auth" replace />;
 
-  const currentPath = window.location.pathname.replace(/^\/+/, "");
+  const currentPath =
+    window.location.pathname.replace(/^\/+/, "") + window.location.search;
+  // const currentPath = window.location.pathname.replace(/^\/+/, "");
 
   const properRoute = getProperRoute({
     role: currentUser?.role,

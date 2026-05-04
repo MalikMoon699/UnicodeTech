@@ -9,6 +9,8 @@ import {
   ScanEye,
   Check,
   X,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { formateDateTime } from "../utils/helper";
 import { ProfileImage, UserHover } from "./CustomComponents";
@@ -19,9 +21,36 @@ import {
 } from "../services/admin/leaves.services";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { useSearchParams } from "react-router-dom";
+import {
+  deleteLeave,
+  getLeaveById,
+  updateLeave,
+} from "../services/manager/leave.services";
+import Loader from "./Loader";
+import {
+  AdminLeaveCreateModal,
+  LeaveRequestModal,
+} from "./Attendance.components";
 
-export const LeaveList = ({ leaves, type = "user" }) => {
+export const LeaveList = ({ leaves, isBoss = false, type = "user" }) => {
+  const { currentUser } = useAuth();
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const leaveIdFromUrl = searchParams.get("leaveId");
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+
+  const handleDelete = async (leave) => {
+    try {
+      await deleteLeave({
+        leaveId: leave?.id,
+        type: isBoss ? "boss" : "user",
+      });
+    } catch (err) {
+      console.error("Failed to delete leave:", err);
+    }
+  };
 
   const getStatus = (dates) => {
     const counts = dates.reduce(
@@ -90,7 +119,29 @@ export const LeaveList = ({ leaves, type = "user" }) => {
           const counts = statusCounts(leave.dates);
 
           return (
-            <div key={leave.id} className={`leave-card leave-${status}`}>
+            <div
+              key={leave.id}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                const leaveData = leave;
+                const isBoss = type === "boss";
+                if (!isBoss) {
+                  const allPending = leaveData?.dates?.every(
+                    (item) => item.status === "pending",
+                  );
+
+                  if (!allPending) return;
+                }
+
+                if (leave?.createdBy !== currentUser?.userId) return;
+                setContextMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  leave,
+                });
+              }}
+              className={`leave-card leave-${status}`}
+            >
               {isAdmin && (
                 <ProfileImage
                   className="leave-card-profileImg"
@@ -149,31 +200,150 @@ export const LeaveList = ({ leaves, type = "user" }) => {
                   />
                 </div>
               </div>
+              {contextMenu && (
+                <div
+                  className="message-action-menu"
+                  style={{
+                    position: "fixed",
+                    top: contextMenu.y,
+                    left: contextMenu.x,
+                    zIndex: 1000,
+                  }}
+                  onMouseLeave={() => setContextMenu(null)}
+                >
+                  <button
+                    onClick={() => {
+                      setEditTarget(contextMenu.leave);
+                      setContextMenu(null);
+                    }}
+                    className="message-action-menu-btn edit"
+                  >
+                    <span className="icon">
+                      <Edit size={14} />
+                    </span>
+                    Edit
+                  </button>
+                  <button
+                    className="message-action-menu-btn delete"
+                    onClick={() => {
+                      const leave = contextMenu.leave;
+                      setContextMenu(null);
+
+                      toast("Are you sure you want to delete this leave?", {
+                        action: {
+                          label: "Delete",
+                          onClick: async () => {
+                            try {
+                              await handleDelete(leave);
+                              toast.success("Leave deleted successfully");
+                            } catch (err) {
+                              toast.error(
+                                err.message || "Failed to delete leave",
+                              );
+                            }
+                          },
+                        },
+                        cancel: {
+                          label: "Cancel",
+                        },
+                      });
+                    }}
+                  >
+                    <span className="icon">
+                      <Trash2 size={14} />
+                    </span>
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           );
         })
       ) : (
         <p className="empty-data">No leave requests found.</p>
       )}
-      {selectedLeave && (
+      {(selectedLeave || leaveIdFromUrl) && (
         <LeaveDetailsModal
-          leave={selectedLeave}
+          leaveDetails={selectedLeave}
           isAdmin={isAdmin}
-          onClose={() => setSelectedLeave(null)}
+          leaveIdFromUrl={leaveIdFromUrl}
+          onClose={() => {
+            setSelectedLeave(null);
+            setSearchParams({});
+          }}
         />
       )}
+      {editTarget &&
+        (isBoss ? (
+          <AdminLeaveCreateModal
+            onClose={() => setEditTarget(null)}
+            isEdit={true}
+            initialData={editTarget}
+            onSendRequest={async ({ requestData }) => {
+              await updateLeave({
+                leaveId: editTarget.id,
+                updates: requestData,
+                type: "boss",
+              });
+              setEditTarget(null);
+            }}
+          />
+        ) : (
+          <LeaveRequestModal
+            onClose={() => setEditTarget(null)}
+            isEdit={true}
+            initialData={editTarget}
+            onSendRequest={async ({ requestData }) => {
+              await updateLeave({
+                leaveId: editTarget.id,
+                updates: requestData,
+                type: "user",
+              });
+              setEditTarget(null);
+            }}
+          />
+        ))}
     </div>
   );
 };
 
-export const LeaveDetailsModal = ({ leave, isAdmin, onClose }) => {
-  if (!leave) return null;
+export const LeaveDetailsModal = ({
+  leaveDetails,
+  isAdmin,
+  leaveIdFromUrl = null,
+  onClose,
+}) => {
   const { currentUser } = useAuth();
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewResult, setReviewResult] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingReviewer, setLoadingReviewer] = useState(false);
   const [reviewerUser, setReviewerUser] = useState(null);
+  const [leave, setLeave] = useState(null);
+  const [loadingUrlLeave, setLoadingUrlLeave] = useState(false);
+
+  useEffect(() => {
+    if (leaveIdFromUrl) {
+      fetchLeaveFromUrl();
+    } else {
+      setLeave(leaveDetails);
+    }
+  }, [leaveIdFromUrl]);
+
+  const fetchLeaveFromUrl = async () => {
+    if (!leaveIdFromUrl) return;
+    setLoadingUrlLeave(true);
+    try {
+      const leave = await getLeaveById(leaveIdFromUrl);
+      if (leave) {
+        setLeave(leave);
+      }
+    } catch (err) {
+      console.error("Failed to load leave by URL:", err);
+    } finally {
+      setLoadingUrlLeave(false);
+    }
+  };
 
   useEffect(() => {
     if (leave?.reviewedBy) {
@@ -210,7 +380,7 @@ export const LeaveDetailsModal = ({ leave, isAdmin, onClose }) => {
     );
   };
 
-  const counts = leave.dates.reduce(
+  const counts = leave?.dates?.reduce(
     (acc, d) => {
       acc[d.status] = (acc[d.status] || 0) + 1;
       return acc;
@@ -219,12 +389,12 @@ export const LeaveDetailsModal = ({ leave, isAdmin, onClose }) => {
   );
 
   const status =
-    counts.rejected >= counts.pending && counts.rejected >= counts.approved
+    counts?.rejected >= counts?.pending && counts?.rejected >= counts?.approved
       ? "rejected"
-      : counts.pending >= counts.approved
+      : counts?.pending >= counts?.approved
         ? "pending"
         : "approved";
-  const isPendingLeave = leave.dates.some((d) => d.status === "pending");
+  const isPendingLeave = leave?.dates.some((d) => d?.status === "pending");
 
   const handleCancelReview = () => {
     setReviewResult([]);
@@ -261,181 +431,193 @@ export const LeaveDetailsModal = ({ leave, isAdmin, onClose }) => {
             &times;
           </span>
         </div>
-        <div className="model-content-container">
-          {isAdmin && (
-            <div className="leave-detail-user">
-              <ProfileImage
-                Image={
-                  leave?.user?.profileImage ||
-                  IMAGES[leave?.user?.placeId] ||
-                  IMAGES.PlaceHolder
-                }
-                className="leave-detail-avatar"
-              />
-              <div className="leave-detail-user-info">
-                <h3 className="leave-detail-name">
-                  {leave?.user?.fullName || "N/A"}
-                </h3>
-                <p className="leave-detail-email">
-                  {leave?.user?.email || "N/A"}
-                </p>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "end",
-                  justifyContent: "end",
-                  gap: "5px",
-                }}
-              >
-                {isAdmin && isPendingLeave && (
-                  <button
-                    onClick={() => setIsReviewing(true)}
-                    className="leave-detail-review-btn"
-                  >
-                    <span className="icon">
-                      <ScanEye size={18} />
-                    </span>
-                    Review
-                  </button>
-                )}
-                <div className={`leave-detail-status ${status}`}>{status}</div>
-              </div>
-            </div>
-          )}
-          <div className="leave-detail-badges">
-            <span className="leave-detail-type">Personal Leave</span>
-            <span className="leave-detail-days">
-              {leave?.dates?.length} days
-            </span>
+        {loadingUrlLeave ? (
+          <div className="model-content-container">
+            <Loader style={{ height: "300px" }} />
           </div>
-          <div className="leave-detail-section">
-            <h4 className="leave-detail-heading">Requested Dates</h4>
-
-            {leave?.dates
-              ?.slice()
-              .filter((d) => (isReviewing ? d.status === "pending" : true))
-              .sort((a, b) => new Date(a.date) - new Date(b.date))
-              .map((d, i) => (
-                <div key={i} className="leave-detail-date-row">
-                  <div className="leave-detail-date">
-                    {new Date(d.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </div>
-                  {isReviewing ? (
-                    <div className="leave-detail-actions">
-                      <button
-                        className="leave-detail-action-btn reject"
-                        onClick={() => handleReviewChange(d.date, "rejected")}
-                      >
-                        <X size={16} />
-                      </button>
-
-                      <button
-                        className="leave-detail-action-btn approve"
-                        onClick={() => handleReviewChange(d.date, "approved")}
-                      >
-                        <Check size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className={`leave-detail-badge ${d.status}`}>
-                      {d.status}
-                    </span>
-                  )}
+        ) : (
+          <div className="model-content-container">
+            {isAdmin && (
+              <div className="leave-detail-user">
+                <ProfileImage
+                  Image={
+                    leave?.user?.profileImage ||
+                    IMAGES[leave?.user?.placeId] ||
+                    IMAGES.PlaceHolder
+                  }
+                  className="leave-detail-avatar"
+                />
+                <div className="leave-detail-user-info">
+                  <h3 className="leave-detail-name">
+                    {leave?.user?.fullName || "N/A"}
+                  </h3>
+                  <p className="leave-detail-email">
+                    {leave?.user?.email || "N/A"}
+                  </p>
                 </div>
-              ))}
-          </div>
-          {isReviewing ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "end",
+                    justifyContent: "end",
+                    gap: "5px",
+                  }}
+                >
+                  {isAdmin && isPendingLeave && (
+                    <button
+                      onClick={() => setIsReviewing(true)}
+                      className="leave-detail-review-btn"
+                    >
+                      <span className="icon">
+                        <ScanEye size={18} />
+                      </span>
+                      Review
+                    </button>
+                  )}
+                  <div className={`leave-detail-status ${status}`}>
+                    {status}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="leave-detail-badges">
+              <span className="leave-detail-type">Personal Leave</span>
+              <span className="leave-detail-days">
+                {leave?.dates?.length} days
+              </span>
+            </div>
             <div className="leave-detail-section">
-              <h4 className="leave-detail-heading">Review Summary</h4>
-              <div className="leave-detail-review-row-list">
-                {reviewResult.map((d, i) => (
-                  <div
-                    key={i}
-                    className={`leave-detail-date leave-detail-review-row review-${d.status}`}
-                  >
-                    <span>
+              <h4 className="leave-detail-heading">Requested Dates</h4>
+
+              {leave?.dates
+                ?.slice()
+                .filter((d) => (isReviewing ? d.status === "pending" : true))
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .map((d, i) => (
+                  <div key={i} className="leave-detail-date-row">
+                    <div className="leave-detail-date">
                       {new Date(d.date).toLocaleDateString("en-US", {
                         weekday: "long",
                         year: "numeric",
                         month: "long",
                         day: "numeric",
                       })}
-                    </span>
-                    {d.status !== "pending" && (
-                      <span
-                        onClick={() => handleReviewChange(d.date, "pending")}
-                        className="icon"
-                      >
-                        <XCircle size={16} />
+                    </div>
+                    {isReviewing ? (
+                      <div className="leave-detail-actions">
+                        <button
+                          className="leave-detail-action-btn reject"
+                          onClick={() => handleReviewChange(d.date, "rejected")}
+                        >
+                          <X size={16} />
+                        </button>
+
+                        <button
+                          className="leave-detail-action-btn approve"
+                          onClick={() => handleReviewChange(d.date, "approved")}
+                        >
+                          <Check size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`leave-detail-badge ${d.status}`}>
+                        {d.status}
                       </span>
                     )}
                   </div>
                 ))}
-              </div>
-              <div className="leave-detail-review-actions">
-                <button
-                  className="leave-detail-review-action cancel"
-                  onClick={handleCancelReview}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="leave-detail-review-action submit"
-                  onClick={handleSubmitReview}
-                  disabled={loading}
-                >
-                  {loading ? "Submitting..." : "Submit"}
-                </button>
-              </div>
             </div>
-          ) : (
-            <>
+            {isReviewing ? (
               <div className="leave-detail-section">
-                <h4 className="leave-detail-heading">Reason</h4>
-                <div className="leave-detail-reason">
-                  {leave?.reason || "No reason provided"}
+                <h4 className="leave-detail-heading">Review Summary</h4>
+                <div className="leave-detail-review-row-list">
+                  {reviewResult.map((d, i) => (
+                    <div
+                      key={i}
+                      className={`leave-detail-date leave-detail-review-row review-${d.status}`}
+                    >
+                      <span>
+                        {new Date(d.date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                      {d.status !== "pending" && (
+                        <span
+                          onClick={() => handleReviewChange(d.date, "pending")}
+                          className="icon"
+                        >
+                          <XCircle size={16} />
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="leave-detail-review-actions">
+                  <button
+                    className="leave-detail-review-action cancel"
+                    onClick={handleCancelReview}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="leave-detail-review-action submit"
+                    onClick={handleSubmitReview}
+                    disabled={loading}
+                  >
+                    {loading ? "Submitting..." : "Submit"}
+                  </button>
                 </div>
               </div>
+            ) : (
+              <>
+                <div className="leave-detail-section">
+                  <h4 className="leave-detail-heading">Reason</h4>
+                  <div className="leave-detail-reason">
+                    {leave?.reason || "No reason provided"}
+                  </div>
+                </div>
 
-              <div className="leave-detail-footer">
-                <div>
-                  <p className="leave-detail-label">Submitted</p>
+                <div className="leave-detail-footer">
+                  <div>
+                    <p className="leave-detail-label">Submitted</p>
+                    <p className="leave-detail-value">
+                      {leave?.createdAt?.seconds
+                        ? new Date(
+                            leave.createdAt.seconds * 1000,
+                          ).toDateString()
+                        : "-"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="leave-detail-label">Last Update</p>
+                    <p className="leave-detail-value">
+                      {leave?.updatedAt?.seconds
+                        ? new Date(
+                            leave.updatedAt.seconds * 1000,
+                          ).toDateString()
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="leave-detail-reviewed">
+                  <p className="leave-detail-label">Reviewed By</p>
                   <p className="leave-detail-value">
-                    {leave?.createdAt?.seconds
-                      ? new Date(leave.createdAt.seconds * 1000).toDateString()
-                      : "-"}
+                    {leave?.isAutoApproved
+                      ? "System"
+                      : loadingReviewer
+                        ? "Loading..."
+                        : reviewerUser?.fullName || "—"}
                   </p>
                 </div>
-
-                <div>
-                  <p className="leave-detail-label">Last Update</p>
-                  <p className="leave-detail-value">
-                    {leave?.updatedAt?.seconds
-                      ? new Date(leave.updatedAt.seconds * 1000).toDateString()
-                      : "-"}
-                  </p>
-                </div>
-              </div>
-              <div className="leave-detail-reviewed">
-                <p className="leave-detail-label">Reviewed By</p>
-                <p className="leave-detail-value">
-                  {leave?.isAutoApproved
-                    ? "System"
-                    : loadingReviewer
-                      ? "Loading..."
-                      : reviewerUser?.fullName || "—"}
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
