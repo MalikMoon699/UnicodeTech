@@ -4,6 +4,7 @@ import {
   Header,
   ProfileImage,
   StatesCard,
+  UserHoverPortable,
 } from "../../components/CustomComponents";
 import "../../assets/style/Attendance.css";
 import { useAuth } from "../../context/AuthContext";
@@ -208,11 +209,14 @@ const Attendance = () => {
                     borderC="var(--primary)"
                     className="attendance-user-item-profile"
                   />
-                  <div className="attendance-user-item-content">
-                    <strong className="elepsis">{u?.fullName || "N/A"}</strong>
-                    <p className="elepsis">{u?.email || "N/A"}</p>
-                  </div>
-
+                  <UserHoverPortable userId={u?.userId}>
+                    <div className="attendance-user-item-content user-hover-child">
+                      <strong className="elepsis">
+                        {u?.fullName || "N/A"}
+                      </strong>
+                      <p className="elepsis">{u?.email || "N/A"}</p>
+                    </div>
+                  </UserHoverPortable>
                   {u.unseenCount > 0 && (
                     <span className="attendance-badge">{u.unseenCount}</span>
                   )}

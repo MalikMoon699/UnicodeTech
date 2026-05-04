@@ -4,6 +4,7 @@ import {
   LoadMore,
   ProfileImage,
   StatesCard,
+  UserHoverPortable,
 } from "../../components/CustomComponents";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -127,7 +128,6 @@ const DayEndStatus = ({ isManager = false, tab = "my", setTab }) => {
     if (!hasMore || loadMoreLoading) return;
     fetchReports(false);
   };
-
   return (
     <div className="page-container">
       <Header
@@ -252,12 +252,14 @@ const DayEndStatus = ({ isManager = false, tab = "my", setTab }) => {
                 borderC="var(--primary)"
                 className="day-end-list-header-user-profile"
               />
-              <div className="day-end-list-header-user-content">
-                <strong className="elepsis">
-                  {selectedUser?.fullName || "N/A"}
-                </strong>
-                <p className="elepsis">{selectedUser?.email || "N/A"}</p>
-              </div>
+              <UserHoverPortable userId={selectedUser?.userId}>
+                <div className="day-end-list-header-user-content user-hover-child">
+                  <strong className="elepsis">
+                    {selectedUser?.fullName || "N/A"}
+                  </strong>
+                  <p className="elepsis">{selectedUser?.email || "N/A"}</p>
+                </div>
+              </UserHoverPortable>
             </div>
             {loadingSelectedData ? (
               <Loader style={{ height: "50vh" }} />

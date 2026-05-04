@@ -82,7 +82,7 @@
   border-radius: 10px;
   margin-top: 23px;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .attendance-calendar-header {
@@ -426,6 +426,7 @@
   border: 1px solid var(--border);
   background: var(--background);
   display: flex;
+  align-items: center;
   justify-content: start;
 }
 

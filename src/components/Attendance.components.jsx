@@ -295,7 +295,11 @@ export const AttendanceHover = ({ data, children, delay = 300 }) => {
               {data.type === "leave" && (
                 <div className="attendanceHover-tooltip-late">
                   <span>Leave Reason:</span>
-                  <p>{data?.leaveReason || "N/A"}</p>
+                  <p>
+                    {data?.status === "weekend"
+                      ? "Weekend"
+                      : data?.leaveReason || "N/A"}
+                  </p>
                 </div>
               )}
             </div>

@@ -434,13 +434,11 @@ const Chats = () => {
   }, [activeChat, chats]);
 
   useEffect(() => {
-    if (activeChat && !activeChatLoading && !activeChatData) {
+    if (!chatsLoading && activeChat && !activeChatData) {
       navigate("/chats");
       toast.info("Chat not found");
-      return;
     }
-  }, [activeChatLoading, activeChat, activeChatData]);
-
+  }, [chatsLoading, activeChat, activeChatData]);
   const activeChatUser = useMemo(() => {
     if (!activeChatData || activeChatData.type !== "private") return null;
     const otherId = activeChatData.members?.find((id) => id !== userId);
@@ -494,10 +492,9 @@ const Chats = () => {
       id: customMsgId,
       text: tempText,
       senderId: userId,
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
       isOptimistic: true,
     };
-
     setMessages((prev) => [...prev, messageObj]);
 
     try {
@@ -537,6 +534,11 @@ const Chats = () => {
         prev.map((m) => (m.id === customMsgId ? { ...m, isFailed: true } : m)),
       );
     }
+  };
+
+  const SendMessage = () => {
+    if (isEmpty(text) || !activeChat) return;
+    handleSend();
   };
 
   const handleStartChat = async (targetUserId, targetauthId) => {
@@ -904,18 +906,11 @@ const Chats = () => {
                               </span>
                             </UserHoverPortable>
                           )}
-                          {msg.isOptimistic && (
+                          {msg.isFailed ? (
+                            <p className="sending-text error">Failed to send</p>
+                          ) : msg.isOptimistic ? (
                             <p className="sending-text">Sending...</p>
-                          )}
-
-                          {msg.isFailed && (
-                            <p
-                              style={{ color: "var(--status-rejected)" }}
-                              className="sending-text"
-                            >
-                              Failed to send
-                            </p>
-                          )}
+                          ) : null}
 
                           <div
                             className={
@@ -935,7 +930,7 @@ const Chats = () => {
                                   : "chat-time"
                               }
                             >
-                              {formateTime(msg?.createdAt) || "N/A"}
+                              {formateTime(msg?.createdAt) || "sending..."}
                               {isMe && activeChatData?.type !== "group" && (
                                 <span
                                   style={{ marginLeft: "4px" }}
@@ -1039,7 +1034,7 @@ const Chats = () => {
                 value={text}
                 setValue={setText}
                 placeholder="Type a message..."
-                onSubmit={handleSend}
+                onSubmit={SendMessage}
                 isEdit={!!editingMessage}
                 onEdit={handleEdit}
                 onCancelEdit={handleCancelEdit}
