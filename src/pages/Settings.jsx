@@ -14,6 +14,7 @@ import Loader from "../components/Loader";
 import { toast } from "sonner";
 import { UpdateProfileHelper } from "../services/setting.services.js";
 import { handleUploadImage } from "../utils/helper.js";
+import { useNavigate } from "react-router";
 
 const Setting = () => {
   const {
@@ -27,6 +28,7 @@ const Setting = () => {
     setLimit,
   } = useTheme();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [loadingType, setLoadingType] = useState("");
   const [name, setName] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
@@ -75,7 +77,13 @@ const Setting = () => {
 
   return (
     <div className="page-container">
-      <Header title="Settings" desc="Manage your account settings" />
+      <Header
+        title="Settings"
+        desc="Manage your account settings"
+        context={
+          <button onClick={() => navigate("/testing")}>Go testing</button>
+        }
+      />
       <section className="settings-section">
         <div className="settings-section-header">
           <Camera size={20} />

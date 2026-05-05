@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 import { db } from "../utils/FirebaseConfig";
-import { handleGetToken } from "../utils/extensions/Notification.extensions";
+import { handleGetToken, requestPermission } from "../utils/extensions/Notification.extensions";
 import { Push_Notification_Api } from "../utils/constants";
 import { sendNotification } from "dev-push-notification";
 import { toast } from "sonner";
@@ -83,6 +83,7 @@ const TestingPage = () => {
       setLoading("");
     }
   };
+
   return (
     <div>
       <button onClick={RemoveALLTokens}>
@@ -90,6 +91,7 @@ const TestingPage = () => {
           ? "All users tokens removing..."
           : "Remove token from all users"}
       </button>
+      <button onClick={requestPermission}>requestPermission</button>
       <button disabled={loading} onClick={storeToken}>
         {loading === "getToken" ? "Getting..." : "Get token"}
       </button>

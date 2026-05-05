@@ -64,7 +64,7 @@ export const handleSendNotification = async ({
         } else {
           const q = query(
             collection(db, "UserIndex"),
-            where("docId", "==", userId)
+            where("docId", "==", userId),
           );
 
           const snap = await getDocs(q);
@@ -78,14 +78,16 @@ export const handleSendNotification = async ({
         return {
           isOnline: data.isOnline,
           fcmTokens: data.fcmTokens,
+          pushEnabled: data?.pushEnabled,
           userId,
           authId,
         };
-      })
+      }),
     );
 
     usersData.forEach((user) => {
       if (!user) return;
+      if (user.pushEnabled === false) return;
 
       if (user.isOnline) {
         showToast({ title, body, link, authId: user.authId });
@@ -124,5 +126,23 @@ const showToast = async ({ title, body, link, authId }) => {
     );
   } catch (error) {
     console.error("Failed to add notification:", error);
+  }
+};
+
+export const requestPermission = async () => {
+  try {
+    console.log("Requesting permission...");
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      console.log("Notification permission granted.");
+      const tokenRes = await handleGetToken();
+      return tokenRes;
+    } else {
+      console.log("Unable to get permission to notify.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Permission request failed:", error);
+    return null;
   }
 };
