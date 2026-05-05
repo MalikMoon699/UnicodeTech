@@ -13,6 +13,7 @@ const TestingPage = () => {
   const storeToken = async () => {
     setLoading("getToken");
     try {
+      await Notification.requestPermission();
       const tokenRes = await handleGetToken();
       setToken(tokenRes);
       toast.success("Token stored");
