@@ -1,9 +1,42 @@
 import React, { useState } from "react";
 import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 import { db } from "../utils/FirebaseConfig";
+import { handleGetToken } from "../utils/extensions/Notification.extensions";
+import { Push_Notification_Api } from "../utils/constants";
+import { sendNotification } from "dev-push-notification";
 
 const TestingPage = () => {
   const [loading, setLoading] = useState("");
+  const [token, setToken] = useState(null);
+
+  const storeToken = async () => {
+    setLoading("getToken");
+    try {
+      const tokenRes = await handleGetToken();
+      setToken(tokenRes);
+    } catch (err) {
+      console.error("Failed to get fcm:", err);
+    } finally {
+      setLoading("");
+    }
+  };
+
+  const handleSendPush = async () => {
+    setLoading("sendPush")
+    try {
+      await sendNotification({
+        apiKey: Push_Notification_Api,
+        title: "Test",
+        body: "testing push",
+        icon: "https://unicodetech-two.vercel.app/SiteIcon.png",
+        fcmTokens: [token],
+      });
+    } catch (err) {
+      console.error("Failed to send push:", err);
+    }finally{
+      setLoading("")
+    }
+  };
 
   const RemoveALLTokens = async () => {
     try {
@@ -51,6 +84,13 @@ const TestingPage = () => {
         {loading === "removealltokens"
           ? "All users tokens removing..."
           : "Remove token from all users"}
+      </button>
+      <button disabled={loading} onClick={storeToken}>
+        {loading === "getToken" ? "Getting..." : "Get token"}
+      </button>
+      <p>{token}</p>
+      <button disabled={loading} onClick={handleSendPush}>
+        {loading === "sendPush" ? "sending..." : "Send Push"}
       </button>
     </div>
   );
