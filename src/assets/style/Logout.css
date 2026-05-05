@@ -59,7 +59,7 @@
 /* ====== Responsive Style ====== */
 
 @media (max-width: 768px) {
-  .model-content {
+  .model-content-container {
     padding: clamp(12px, 2vw, 24px);
   }
 

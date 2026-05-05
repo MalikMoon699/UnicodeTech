@@ -32,3 +32,71 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.allow-ios-push-instruction-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--card-foreground);
+  text-align: start;
+}
+
+.allow-ios-push-instruction-desc {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  text-align: start;
+  margin-bottom: 16px;
+}
+
+.allow-ios-push-instruction-img {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0 20px;
+}
+
+.allow-ios-push-instruction-img > img {
+  width: 100%;
+  max-width: 170px;
+  height: auto;
+  border-radius: 16px;
+  object-fit: contain;
+  box-shadow: 0 6px 20px var(--shadow);
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 6px;
+}
+
+.allow-ios-push-instruction-action-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.allow-ios-push-instruction-action-container > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.allow-ios-push-instruction-action-container > button:disabled {
+  background: var(--muted-foreground);
+  cursor: not-allowed;
+}
+
+.allow-ios-push-instruction-action-container > .prev {
+  padding: 2px 11px 2px 2px;
+}
+
+.allow-ios-push-instruction-action-container > .next {
+  padding: 2px 2px 2px 11px;
+}

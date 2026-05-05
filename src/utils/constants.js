@@ -1,7 +1,6 @@
 import SiteLogo from "../assets/images/SiteLogo.png";
 import SiteLogoRed from "../assets/images/SiteLogoRed.png";
 import SiteLogoWhite from "../assets/images/SiteLogoWhite.png";
-// import PlaceHolder from "../assets/images/PlaceHolder.jpg";
 import NotFound from "../assets/images/NotFound.png";
 import auth1 from "../assets/images/auth1.png";
 import auth2 from "../assets/images/auth2.png";
@@ -17,6 +16,10 @@ import P7 from "../assets/images/PlaceHolder/Placeholder7.png";
 import P8 from "../assets/images/PlaceHolder/Placeholder8.png";
 import P9 from "../assets/images/PlaceHolder/Placeholder9.png";
 import P10 from "../assets/images/PlaceHolder/Placeholder10.png";
+import Instruction1 from "../assets/images/Instruction/Instruction1.png";
+import Instruction2 from "../assets/images/Instruction/Instruction2.png";
+import Instruction3 from "../assets/images/Instruction/Instruction3.png";
+import Instruction4 from "../assets/images/Instruction/Instruction4.png";
 
 export const IMAGES = {
   SiteLogo,
@@ -37,6 +40,10 @@ export const IMAGES = {
   P8,
   P9,
   P10,
+  Instruction1,
+  Instruction2,
+  Instruction3,
+  Instruction4,
 };
 
 export const AdminSidebarMenu = [

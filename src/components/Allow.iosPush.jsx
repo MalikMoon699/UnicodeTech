@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import "../assets/style/AllowIosPush.css";
-import { Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { IMAGES } from "../utils/constants";
 
 const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -11,49 +12,13 @@ const isPermissionAllowed = Notification?.permission === "granted";
 const AllowIosPush = () => {
   const [isPermissionWant, setIsPermissionWant] = useState(true);
   const [isInstruction, setIsInstruction] = useState(false);
-  const showContent = "noAtHome";
 
   const onClose = () => {
     setIsPermissionWant(false);
   };
 
-  //   const getContent = () => {
-  //     if (isIOSDevice && !isSafari) {
-  //       return {
-  //         label: "Please open this app in Safari to continue.",
-  //         buttonLabel: "Open Safari",
-  //         buttonActions: () => {
-  //           window.location.href = "x-web-search://";
-  //         },
-  //       };
-  //     }
-
-  //     if (isIOSDevice && isSafari && !isAtHome) {
-  //       return {
-  //         label: "Add this app to your Home Screen for better experience.",
-  //         buttonLabel: "How to Add",
-  //         buttonActions: () => {
-  //           alert("Tap Share button → Add to Home Screen");
-  //         },
-  //       };
-  //     }
-
-  //     if (isAtHome && !isPermissionAllowed) {
-  //       return {
-  //         label: "Enable notifications to stay updated.",
-  //         buttonLabel: "Enable",
-  //         buttonActions: async () => {
-  //           const permission = await Notification.requestPermission();
-  //           console.log("Permission:", permission);
-  //         },
-  //       };
-  //     }
-
-  //     return null;
-  //   };
-
   const getContent = () => {
-    if (showContent === "noSafari") {
+    if (isIOSDevice && !isSafari) {
       return {
         label: "Please open this app in Safari to allow notification.",
         buttonLabel: "Copy Link",
@@ -68,18 +33,17 @@ const AllowIosPush = () => {
       };
     }
 
-    if (showContent === "noAtHome") {
+    if (isIOSDevice && isSafari && !isAtHome) {
       return {
         label: "Add this app to your Home Screen for allow notification.",
         buttonLabel: "How to Add",
         buttonActions: () => {
           setIsInstruction(true);
-          //   alert("Tap Share button → Add to Home Screen");
         },
       };
     }
 
-    if (showContent === "noPermision") {
+    if (isAtHome && !isPermissionAllowed) {
       return {
         label: "Enable notifications to stay updated.",
         buttonLabel: "Enable",
@@ -126,6 +90,48 @@ const AllowIosPush = () => {
 export default AllowIosPush;
 
 const Instruction = ({ onClose }) => {
+  const [step, setStep] = useState(1);
+  const totalPages = 4;
+
+  const handlePrev = () => {
+    if (step === 1) return;
+    setStep(step - 1);
+  };
+
+  const handleNext = () => {
+    if (step === totalPages) return;
+    setStep(step + 1);
+  };
+
+  const getContent = (step) => {
+    const steps = {
+      1: {
+        heading: "Open Browser Menu",
+        description: "Tap the three dots icon to open the browser menu.",
+        image: IMAGES.Instruction1,
+      },
+      2: {
+        heading: "Tap Share",
+        description: "From the menu, tap the Share button.",
+        image: IMAGES.Instruction2,
+      },
+      3: {
+        heading: "Add to Home Screen",
+        description: "Scroll and tap 'Add to Home Screen'.",
+        image: IMAGES.Instruction3,
+      },
+      4: {
+        heading: "Confirm Add",
+        description: "Tap the Add button to finish installation.",
+        image: IMAGES.Instruction4,
+      },
+    };
+
+    return steps[step] || null;
+  };
+
+  const content = getContent(step);
+
   return (
     <div className="model-overlay">
       <div className="model-content">
@@ -135,7 +141,38 @@ const Instruction = ({ onClose }) => {
             &times;
           </button>
         </div>
-        <div className="model-content-container"></div>
+        <div className="model-content-container">
+          <h2 className="allow-ios-push-instruction-heading">
+            {content?.heading}
+          </h2>
+          <p className="allow-ios-push-instruction-desc">
+            {content?.description}
+          </p>
+          <div className="allow-ios-push-instruction-img">
+            <img src={content?.image} />
+          </div>
+          <div className="allow-ios-push-instruction-action-container">
+            <button disabled={step === 1} onClick={handlePrev} className="prev">
+              <span className="icon">
+                <ChevronLeft />
+              </span>
+              Prev
+            </button>
+            <p>
+              Page {step}/{totalPages}
+            </p>
+            <button
+              disabled={step === totalPages}
+              onClick={handleNext}
+              className="next"
+            >
+              Next
+              <span className="icon">
+                <ChevronRight />
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
