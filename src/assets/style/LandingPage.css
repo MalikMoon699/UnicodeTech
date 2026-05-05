@@ -336,7 +336,7 @@
   top: 0;
   color: var(--primary);
   font-size: 14px;
-} 
+}
 
 .landing-page-footer {
   padding: 1rem;
@@ -344,4 +344,32 @@
   font-size: 0.875rem;
   color: var(--muted-foreground);
   border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .landing-page-header .landing-page-btn-ghost {
+    display: none;
+  }
+
+  .landing-page-hero {
+    padding: clamp(1rem, 2vw, 5rem) 1rem;
+  }
+
+  .landing-page-hero-badge {
+    margin-bottom: clamp(0.5rem, 2vw, 1.5rem);
+  }
+
+  .landing-page-hero-title {
+    font-size: clamp(1.7rem, 2vw, 3.75rem);
+  }
+
+  .landing-page-hero-subtitle {
+    margin-top: clamp(0.5rem, 2vw, 1.5rem);
+    font-size: clamp(1rem, 2vw, 1.35rem);
+    line-height: clamp(1.3rem, 2vw, 1.75rem);
+  }
+
+  .landing-page-features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
 }
