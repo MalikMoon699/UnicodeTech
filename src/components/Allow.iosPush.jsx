@@ -1,17 +1,29 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "../assets/style/AllowIosPush.css";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { IMAGES } from "../utils/constants";
 
-const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-const isAtHome = window.matchMedia("(display-mode: standalone)").matches;
-const isPermissionAllowed = Notification?.permission === "granted";
-
 const AllowIosPush = () => {
   const [isPermissionWant, setIsPermissionWant] = useState(true);
   const [isInstruction, setIsInstruction] = useState(false);
+  const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isAtHome =
+    window.matchMedia &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  const isPermissionAllowed =
+    "Notification" in window && window.Notification.permission === "granted";
+
+  useEffect(() => {
+    if (
+      (isIOSDevice && !isSafari) ||
+      (isIOSDevice && isSafari && !isAtHome) ||
+      (isAtHome && !isPermissionAllowed)
+    ) {
+      setIsPermissionWant(true);
+    }
+  }, [isIOSDevice, isSafari, isAtHome, isPermissionAllowed]);
 
   const onClose = () => {
     setIsPermissionWant(false);
@@ -57,7 +69,7 @@ const AllowIosPush = () => {
     return null;
   };
 
-  const content = useMemo(() => getContent(), []);
+  const content = getContent();
 
   if (!isPermissionWant || !content) return null;
 
