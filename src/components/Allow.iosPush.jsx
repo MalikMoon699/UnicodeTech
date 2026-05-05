@@ -7,8 +7,11 @@ import { IMAGES } from "../utils/constants";
 const AllowIosPush = () => {
   const [isPermissionWant, setIsPermissionWant] = useState(true);
   const [isInstruction, setIsInstruction] = useState(false);
-  const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+
+  const isIOSDevice = /iPhone|iPad|iPod/i.test(ua);
+  const isSafari =
+    isIOSDevice && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   const isAtHome =
     window.matchMedia &&
     window.matchMedia("(display-mode: standalone)").matches;
