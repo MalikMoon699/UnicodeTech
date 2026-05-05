@@ -3,7 +3,7 @@ import React from 'react'
 const DashBoard = () => {
   return (
     <div>
-      <div>admin DashBoard</div>
+      <div>admin DashBoard update</div>
     </div>
   );
 }
