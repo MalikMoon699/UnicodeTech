@@ -4,6 +4,7 @@ import { db } from "../utils/FirebaseConfig";
 import { handleGetToken } from "../utils/extensions/Notification.extensions";
 import { Push_Notification_Api } from "../utils/constants";
 import { sendNotification } from "dev-push-notification";
+import { toast } from "sonner";
 
 const TestingPage = () => {
   const [loading, setLoading] = useState("");
@@ -14,15 +15,17 @@ const TestingPage = () => {
     try {
       const tokenRes = await handleGetToken();
       setToken(tokenRes);
+      toast.success("Token stored");
     } catch (err) {
       console.error("Failed to get fcm:", err);
+      toast.error("Failed to get fcm:", err);
     } finally {
       setLoading("");
     }
   };
 
   const handleSendPush = async () => {
-    setLoading("sendPush")
+    setLoading("sendPush");
     try {
       await sendNotification({
         apiKey: Push_Notification_Api,
@@ -33,8 +36,9 @@ const TestingPage = () => {
       });
     } catch (err) {
       console.error("Failed to send push:", err);
-    }finally{
-      setLoading("")
+      toast.error("Failed to send push:", err);
+    } finally {
+      setLoading("");
     }
   };
 
