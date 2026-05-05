@@ -13,12 +13,19 @@ const AllowIosPush = () => {
   const isSafari =
     isIOSDevice && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   const isAtHome =
-    window.matchMedia &&
-    window.matchMedia("(display-mode: standalone)").matches;
+    (window.matchMedia &&
+      window.matchMedia("(display-mode: standalone)").matches) ||
+    window.navigator.standalone === true;
   const isPermissionAllowed =
     "Notification" in window && window.Notification.permission === "granted";
 
   useEffect(() => {
+    console.log("isAtHome:", isAtHome);
+    console.log(
+      "matchMedia:",
+      window.matchMedia("(display-mode: standalone)").matches,
+    );
+    console.log("navigator.standalone:", window.navigator.standalone);
     if (
       (isIOSDevice && !isSafari) ||
       (isIOSDevice && isSafari && !isAtHome) ||
