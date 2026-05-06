@@ -160,6 +160,7 @@ export const subscribeMonthlyAttendance = ({ userId, date, callback }) => {
         hours: data.hours ?? null,
         late: data.late ?? false,
         lateReason: data.lateReason ?? "",
+        leaveReason: data.leaveReason ?? "",
         type: data.type || "present",
         status: data.status || "absent",
       };

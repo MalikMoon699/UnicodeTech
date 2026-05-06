@@ -578,6 +578,19 @@ export const StatesCard = ({
   );
 };
 
+export const QuickActionCard = ({ icon: Icon, title = "", link = "" }) => {
+  const navigate = useNavigate();
+
+  return (
+    <div onClick={() => navigate(link)} className="dashboard-quick-action-card">
+      <span className="icon">
+        <Icon />
+      </span>
+      <p className="dashboard-quick-action-card-title">{title}</p>
+    </div>
+  );
+};
+
 export const Header = ({
   title = "",
   desc = "",

@@ -117,6 +117,63 @@ body {
   padding: 1.5rem;
 }
 
+/* ------  Charts Style ------ */
+
+.charts-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.chart-container {
+  background-color: var(--card);
+  border-radius: 1rem;
+  box-shadow: 0 0px 8px var(--shadow);
+  width: 100%;
+  overflow: hidden;
+  height: 100%;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.chart-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--card-foreground);
+}
+
+.chart-content-cotainer {
+  width: 100%;
+  height: 100%;
+  background-color: var(--card);
+  padding: 30px 20px;
+  margin-left: -20px;
+}
+
+.recharts-wrapper *,
+.recharts-wrapper *:focus {
+  outline: none !important;
+}
+
+.custom-legend {
+  margin: 20px 0px 0px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ------ Modal ------ */
 .model-overlay {
   position: fixed;

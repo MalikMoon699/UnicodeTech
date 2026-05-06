@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState,  useEffect } from "react";
 import "../assets/style/AllowIosPush.css";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { IMAGES } from "../utils/constants";
+import { requestPermission } from "../utils/extensions/Notification.extensions";
 
 const AllowIosPush = () => {
   const [isPermissionWant, setIsPermissionWant] = useState(true);
@@ -20,12 +21,6 @@ const AllowIosPush = () => {
     "Notification" in window && window.Notification.permission === "granted";
 
   useEffect(() => {
-    console.log("isAtHome:", isAtHome);
-    console.log(
-      "matchMedia:",
-      window.matchMedia("(display-mode: standalone)").matches,
-    );
-    console.log("navigator.standalone:", window.navigator.standalone);
     if (
       (isIOSDevice && !isSafari) ||
       (isIOSDevice && isSafari && !isAtHome) ||
@@ -70,7 +65,7 @@ const AllowIosPush = () => {
         label: "Enable notifications to stay updated.",
         buttonLabel: "Enable",
         buttonActions: async () => {
-          const permission = await Notification.requestPermission();
+          const permission = await requestPermission();
           console.log("Permission:", permission);
         },
       };

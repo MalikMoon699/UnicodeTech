@@ -669,6 +669,41 @@
   background: var(--gradian-background);
 }
 
+/* ===== DashBoard Quick Action card ====== */
+.dashboard-quick-action-container {
+  margin-top: 40px;
+}
+.dashboard-quick-action-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  width: 100%;
+  padding: 14px 10px;
+}
+
+.dashboard-quick-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  width: 100%;
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 10px 8px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.dashboard-quick-action-card:hover > .icon {
+  transform: scale(1.08);
+}
+
+.dashboard-quick-action-card-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
 /* ============ Header ============ */
 
 .custom-header-outer-container {

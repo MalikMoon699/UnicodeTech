@@ -77,13 +77,7 @@ const Setting = () => {
 
   return (
     <div className="page-container">
-      <Header
-        title="Settings"
-        desc="Manage your account settings"
-        context={
-          <button onClick={() => navigate("/testing")}>Go testing</button>
-        }
-      />
+      <Header title="Settings" desc="Manage your account settings" />
       <section className="settings-section">
         <div className="settings-section-header">
           <Camera size={20} />
