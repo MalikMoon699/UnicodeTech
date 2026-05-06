@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import { Header, QuickActionCard, StatesCard } from "../../components/CustomComponents";
+import React, { useEffect, useState } from "react";
+import {
+  Header,
+  QuickActionCard,
+  StatesCard,
+} from "../../components/CustomComponents";
 import { ChartCard } from "../../components/ChartsComponents";
 import {
-  weeklyWorkHours,
-  States,
-  leaveTypeDistribution,
-  monthlyAttendanceTrend,
+  getUserDashboard,fallBacks
 } from "../../services/user/dashboard.services";
 import {
   CalendarCheck,
@@ -15,17 +16,35 @@ import {
   FileText,
   Percent,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const DashBoard = () => {
+  const { currentUser } = useAuth();
+  const userId = currentUser?.userId;
   const [loading, setoading] = useState(false);
-  const [states, setStates] = useState(States);
-  const [weeklyHour, setWeeklyHour] = useState(weeklyWorkHours);
-  const [leaveDistribution, setLeaveDistribution] = useState(
-    leaveTypeDistribution,
-  );
-  const [attendanceTrend, setatAtendanceTrend] = useState(
-    monthlyAttendanceTrend,
-  );
+  const [states, setStates] = useState(null);
+  const [weeklyHour, setWeeklyHour] = useState([]);
+  const [leaveDistribution, setLeaveDistribution] = useState([]);
+  const [attendanceTrend, setatAtendanceTrend] = useState([]);
+
+  useEffect(() => {
+    getData(userId);
+  }, [userId]);
+
+  const getData = async (userId) => {
+    try {
+      setoading(true);
+      const res = await getUserDashboard(userId);
+      setStates(res?.States);
+      setWeeklyHour(res?.weeklyWorkHours);
+      setLeaveDistribution(res?.leaveTypeDistribution);
+      setatAtendanceTrend(res?.monthlyAttendanceTrend);
+    } catch (err) {
+      console.error("Failed to load Dashboard:", err);
+    } finally {
+      setoading(false);
+    }
+  };
 
   return (
     <div className="page-container">
@@ -70,20 +89,30 @@ const DashBoard = () => {
         <ChartCard
           title="Weekly Work Hours"
           chartType="bar"
-          ChartData={weeklyHour}
+          ChartData={
+            weeklyHour?.length > 0 ? weeklyHour : fallBacks.weeklyWorkHours
+          }
           loading={loading}
         />
         <ChartCard
           title="Monthly Leave Distribution"
           chartType="pie"
-          ChartData={leaveDistribution}
+          ChartData={
+            leaveDistribution?.length > 0
+              ? leaveDistribution
+              : fallBacks.leaveTypeDistribution
+          }
           loading={loading}
         />
       </div>
       <ChartCard
         title="Attendance Trend"
         chartType="area"
-        ChartData={attendanceTrend}
+        ChartData={
+          attendanceTrend?.length > 0
+            ? attendanceTrend
+            : fallBacks.monthlyAttendanceTrend
+        }
         loading={loading}
       />
       <div className="dashboard-quick-action-container chart-container">

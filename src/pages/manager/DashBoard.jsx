@@ -6,14 +6,8 @@ import {
 } from "../../components/CustomComponents";
 import { ChartCard } from "../../components/ChartsComponents";
 import {
-  myStates,
-  myWeeklyWorkHours,
-  myLeaveTypeDistribution,
-  myMonthlyAttendanceTrend,
-  teamStates,
-  teamAttendanceWeekly,
-  teamLeaveTypeDistribution,
-  teamReportSubmistionWeekly,
+  fallBacks,
+  getManagerDashboard,
 } from "../../services/manager/dashboard.services";
 import {
   CalendarCheck,
@@ -26,27 +20,50 @@ import {
   User,
   Users,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { getUserDashboard } from "../../services/user/dashboard.services";
 
 const DashBoard = () => {
-  const [loading, setoading] = useState(false);
+  const { currentUser } = useAuth();
+  const userId = currentUser?.userId;
+  const [loading, setLoading] = useState(false);
   const [isMy, setIsMy] = useState(true);
-  const [states, setStates] = useState(myStates);
-  const [weeklyHour, setWeeklyHour] = useState(myWeeklyWorkHours);
-  const [leaveDistribution, setLeaveDistribution] = useState(
-    myLeaveTypeDistribution,
-  );
-  const [attendanceTrend, setatAtendanceTrend] = useState(
-    myMonthlyAttendanceTrend,
-  );
-  const [teamAttendance, setTeamAttendance] = useState(teamAttendanceWeekly);
-  const [teamReport, setTeamReport] = useState(teamReportSubmistionWeekly);
+  const [states, setStates] = useState(null);
+  const [weeklyHour, setWeeklyHour] = useState([]);
+  const [leaveDistribution, setLeaveDistribution] = useState([]);
+  const [attendanceTrend, setAttendanceTrend] = useState([]);
+  const [teamAttendance, setTeamAttendance] = useState([]);
+  const [teamReport, setTeamReport] = useState([]);
 
   useEffect(() => {
-    setStates(isMy ? myStates : teamStates);
-    setLeaveDistribution(
-      isMy ? myLeaveTypeDistribution : teamLeaveTypeDistribution,
-    );
-  }, [isMy]);
+    if (userId) {
+      getData(userId);
+    }
+  }, [userId, isMy]);
+
+  const getData = async (userId) => {
+    try {
+      setLoading(true);
+
+      if (isMy) {
+        const res = await getUserDashboard(userId);
+        setStates(res?.States);
+        setWeeklyHour(res?.weeklyWorkHours);
+        setLeaveDistribution(res?.leaveTypeDistribution);
+        setAttendanceTrend(res?.monthlyAttendanceTrend);
+      } else {
+        const res = await getManagerDashboard(userId);
+        setStates(res?.teamStates);
+        setTeamAttendance(res?.teamAttendanceWeekly);
+        setLeaveDistribution(res?.teamLeaveTypeDistribution);
+        setTeamReport(res?.teamReportSubmistionWeekly);
+      }
+    } catch (err) {
+      console.error("Failed to load Dashboard:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="page-container">
@@ -121,21 +138,31 @@ const DashBoard = () => {
           <ChartCard
             title="Weekly Work Hours"
             chartType="bar"
-            ChartData={weeklyHour}
+            ChartData={
+              weeklyHour?.length > 0 ? weeklyHour : fallBacks.weeklyWorkHours
+            }
             loading={loading}
           />
         ) : (
           <ChartCard
             title="Team Attendance"
             chartType="area"
-            ChartData={teamAttendance}
+            ChartData={
+              teamAttendance?.length > 0
+                ? teamAttendance
+                : fallBacks.teamAttendanceWeekly
+            }
             loading={loading}
           />
         )}
         <ChartCard
           title="Monthly Leave Distribution"
           chartType="pie"
-          ChartData={leaveDistribution}
+          ChartData={
+            leaveDistribution?.length > 0
+              ? leaveDistribution
+              : fallBacks.leaveTypeDistribution
+          }
           loading={loading}
         />
       </div>
@@ -143,14 +170,22 @@ const DashBoard = () => {
         <ChartCard
           title="Attendance Trend"
           chartType="area"
-          ChartData={attendanceTrend}
+          ChartData={
+            attendanceTrend?.length > 0
+              ? attendanceTrend
+              : fallBacks.monthlyAttendanceTrend
+          }
           loading={loading}
         />
       ) : (
         <ChartCard
           title="Day-End Status Submission"
           chartType="v-bar"
-          ChartData={teamReport}
+          ChartData={
+            teamReport?.length > 0
+              ? teamReport
+              : fallBacks.teamReportSubmistionWeekly
+          }
           contentStyle={{ marginLeft: "-42px" }}
           height={300}
           loading={loading}

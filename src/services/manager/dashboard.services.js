@@ -1,57 +1,235 @@
-export const myStates = {
-  daysPresent: 22,
-  leavesTaken: 2,
-  absentDays: 1,
-  attendanceRate: 94.7,
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../../utils/FirebaseConfig";
+
+const formatLocalDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
-export const myWeeklyWorkHours = [
-  { Day: "Mon", Hour: 8 },
-  { Day: "Tue", Hour: 7.5 },
-  { Day: "Wed", Hour: 8.2 },
-  { Day: "Thr", Hour: 7.8 },
-  { Day: "Fri", Hour: 6.5 },
-];
+const formatDay = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("en-US", { weekday: "short" });
 
-export const myLeaveTypeDistribution = [
-  { key: "Pending", value: 3 },
-  { key: "Approved", value: 7 },
-  { key: "Rejected", value: 3 },
-];
+const getLast7Days = () => {
+  const today = new Date();
+  const days = [];
 
-export const myMonthlyAttendanceTrend = [
-  { key: "W1", Count: 4 },
-  { key: "W2", Count: 5 },
-  { key: "W3", Count: 3 },
-  { key: "W4", Count: 5 },
-];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    days.push(formatLocalDate(d));
+  }
 
-export const teamStates = {
-  totalUsers: 22,
-  presentToday: 13,
-  pendingToday: 9,
-  absentToday: 0,
-  statusReports: 8,
+  return days.reverse();
 };
 
-export const teamAttendanceWeekly = [
-  { Day: "Mon", Present: 8, Absent: 1, Leave: 2 },
-  { Day: "Tue", Present: 7, Absent: 3, Leave: 1  },
-  { Day: "Wed", Present: 8, Absent: 2, Leave: 1  },
-  { Day: "Thr", Present: 7, Absent: 4, Leave: 0  },
-  { Day: "Fri", Present: 6, Absent: 3, Leave: 2  },
+const getMonthRange = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+};
+
+export const getManagerDashboard = async () => {
+  try {
+    const todayStr = formatLocalDate(new Date());
+    const last7Days = getLast7Days();
+    const { start, end } = getMonthRange();
+
+    const usersSnap = await getDocs(
+      query(
+        collection(db, "UserIndex"),
+        where("role", "==", "user"),
+        where("status", "==", "active"),
+      ),
+    );
+
+    const teamUserIds = [];
+    usersSnap.forEach((doc) => {
+      teamUserIds.push(doc.data().docId);
+    });
+
+    const totalUsers = teamUserIds.length;
+
+    const attendanceSnap = await getDocs(
+      query(collection(db, "Attendance"), where("userId", "in", teamUserIds)),
+    );
+
+    const attendanceMap = {};
+    last7Days.forEach((d) => {
+      attendanceMap[d] = { Present: 0, Absent: 0, Leave: 0 };
+    });
+
+    let presentToday = 0;
+    let absentToday = 0;
+
+    attendanceSnap.forEach((doc) => {
+      const data = doc.data();
+      const date = data.date;
+
+      if (!attendanceMap[date]) return;
+
+      if (data.type === "present") {
+        attendanceMap[date].Present++;
+      } else if (data.type === "absent") {
+        attendanceMap[date].Absent++;
+      } else if (data.type === "leave") {
+        attendanceMap[date].Leave++;
+      }
+
+      if (date === todayStr) {
+        if (data.type === "present") presentToday++;
+        if (data.type === "absent") absentToday++;
+      }
+    });
+
+    const pendingToday = totalUsers - (presentToday + absentToday);
+
+    const teamAttendanceWeekly = last7Days.map((day) => ({
+      Day: formatDay(day),
+      Present: attendanceMap[day].Present,
+      Absent: attendanceMap[day].Absent,
+      Leave: attendanceMap[day].Leave,
+    }));
+
+    const leaveSnap = await getDocs(collection(db, "leaveRequests"));
+
+    const leaveType = {
+      Pending: 0,
+      Approved: 0,
+      Rejected: 0,
+    };
+
+    leaveSnap.forEach((doc) => {
+      const data = doc.data();
+
+      if (!teamUserIds.includes(data.userId)) return;
+
+      data.dates.forEach((d) => {
+        const date = formatLocalDate(new Date(d.date));
+
+        if (date >= formatLocalDate(start) && date <= formatLocalDate(end)) {
+          if (d.status === "pending") leaveType.Pending++;
+          if (d.status === "approved") leaveType.Approved++;
+          if (d.status === "rejected") leaveType.Rejected++;
+        }
+      });
+    });
+
+    const teamLeaveTypeDistribution = Object.entries(leaveType).map(
+      ([key, Count]) => ({
+        key,
+        Count,
+      }),
+    );
+
+    const reportsRootSnap = await getDocs(collection(db, "Reports"));
+
+    const reportMap = {};
+    last7Days.forEach((d) => (reportMap[d] = 0));
+
+    let statusReports = 0;
+
+    await Promise.all(
+      reportsRootSnap.docs.map(async (userDoc) => {
+        if (!teamUserIds.includes(userDoc.id)) return;
+
+        const reportsQuery = query(
+          collection(db, "Reports", userDoc.id, "reports"),
+          where("createdAt", ">=", start),
+          where("createdAt", "<=", end),
+        );
+
+        const snap = await getDocs(reportsQuery);
+
+        snap.forEach((doc) => {
+          const data = doc.data();
+          const date = formatLocalDate(data.createdAt.toDate());
+
+          if (reportMap[date] !== undefined) {
+            reportMap[date]++;
+          }
+
+          if (date === todayStr) {
+            statusReports++;
+          }
+        });
+      }),
+    );
+
+    const teamReportSubmistionWeekly = last7Days.map((day) => ({
+      Day: formatDay(day),
+      Count: reportMap[day],
+    }));
+
+    return {
+      teamStates: {
+        totalUsers,
+        presentToday,
+        pendingToday,
+        absentToday,
+        statusReports,
+      },
+
+      teamAttendanceWeekly,
+
+      teamLeaveTypeDistribution,
+
+      teamReportSubmistionWeekly,
+    };
+  } catch (error) {
+    console.error("Manager Dashboard Error:", error);
+    throw error;
+  }
+};
+
+const teamAttendanceWeekly = [
+  { Day: "Mon", Present: 0, Absent: 0, Leave: 0 },
+  { Day: "Tue", Present: 0, Absent: 0, Leave: 0 },
+  { Day: "Wed", Present: 0, Absent: 0, Leave: 0 },
+  { Day: "Thr", Present: 0, Absent: 0, Leave: 0 },
+  { Day: "Fri", Present: 0, Absent: 0, Leave: 0 },
 ];
 
-export const teamLeaveTypeDistribution = [
-  { key: "Pending", Count: 13},
-  { key: "Approved", Count: 8 },
-  { key: "Rejected", Count: 5 },
+const teamReportSubmistionWeekly = [
+  { Day: "Mon", Count: 0 },
+  { Day: "Tue", Count: 0 },
+  { Day: "Wed", Count: 0 },
+  { Day: "Thr", Count: 0 },
+  { Day: "Fri", Count: 0 },
 ];
 
-export const teamReportSubmistionWeekly = [
-  { Day: "Mon", Count: 8 },
-  { Day: "Tue", Count: 7 },
-  { Day: "Wed", Count: 8 },
-  { Day: "Thr", Count: 7 },
-  { Day: "Fri", Count: 6 },
+const weeklyWorkHours = [
+  { Day: "Mon", Hour: 0 },
+  { Day: "Tue", Hour: 0 },
+  { Day: "Wed", Hour: 0 },
+  { Day: "Thr", Hour: 0 },
+  { Day: "Fri", Hour: 0 },
+  { Day: "Sun", Hour: 0 },
 ];
+
+const leaveTypeDistribution = [
+  { key: "Pending", value: 0 },
+  { key: "Approved", value: 0 },
+  { key: "Rejected", value: 0 },
+];
+
+const monthlyAttendanceTrend = [
+  { key: "W1", Count: 0 },
+  { key: "W2", Count: 0 },
+  { key: "W3", Count: 0 },
+  { key: "W4", Count: 0 },
+];
+
+export const fallBacks = {
+  weeklyWorkHours,
+  leaveTypeDistribution,
+  monthlyAttendanceTrend,
+  teamAttendanceWeekly,
+  teamReportSubmistionWeekly,
+};

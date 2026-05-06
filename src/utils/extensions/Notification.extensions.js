@@ -131,16 +131,18 @@ const showToast = async ({ title, body, link, authId }) => {
 
 export const requestPermission = async () => {
   try {
-    console.log("Requesting permission...");
+    if (Notification.permission === "denied") {
+      console.log("Notifications are blocked by user.");
+      return {
+        permission: "denied",
+      };
+    }
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      console.log("Notification permission granted.");
       const tokenRes = await handleGetToken();
-      return tokenRes;
-    } else {
-      console.log("Unable to get permission to notify.");
-      return null;
+      return { tokenRes, permission };
     }
+    return { permission };
   } catch (error) {
     console.error("Permission request failed:", error);
     return null;

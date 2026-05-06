@@ -21,6 +21,7 @@ import { useDebounce } from "../utils/hooks/useDebounce";
 import { getUsersWithoutPaginationHelper } from "../services/admin/users.serveces";
 import { IMAGES } from "../utils/constants";
 import { createPortal } from "react-dom";
+import { formateTime } from "../utils/helper";
 
 export const AttenDanceCalender = ({
   loading,
@@ -265,20 +266,12 @@ export const AttendanceHover = ({ data, children, delay = 300 }) => {
 
               <div className="attendanceHover-tooltip-row">
                 <span>Check In:</span>
-                <span>
-                  {data.checkIn
-                    ? new Date(data.checkIn).toLocaleTimeString()
-                    : "-"}
-                </span>
+                <span>{data.checkIn ? formateTime(data.checkIn) : "-"}</span>
               </div>
 
               <div className="attendanceHover-tooltip-row">
                 <span>Check Out:</span>
-                <span>
-                  {data.checkOut
-                    ? new Date(data.checkOut).toLocaleTimeString()
-                    : "-"}
-                </span>
+                <span>{data.checkOut ? formateTime(data.checkOut) : "-"}</span>
               </div>
 
               <div className="attendanceHover-tooltip-row">

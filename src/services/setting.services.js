@@ -9,7 +9,7 @@ export const UpdateProfileHelper = async ({
   updatedProfileImage,
 }) => {
   try {
-    const userRef = doc(db, currentUser.roleCollection, currentUser.docId);
+    const userRef = doc(db, currentUser.collection, currentUser.docId);
     const indexRef = doc(db, "UserIndex", currentUser.authId);
 
     const updates = {};

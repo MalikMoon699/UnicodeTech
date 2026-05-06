@@ -1,4 +1,4 @@
-import React, { useState,  useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "../assets/style/AllowIosPush.css";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ const AllowIosPush = () => {
 
   useEffect(() => {
     if (
+      (!isIOSDevice && !isPermissionAllowed) ||
       (isIOSDevice && !isSafari) ||
       (isIOSDevice && isSafari && !isAtHome) ||
       (isAtHome && !isPermissionAllowed)
@@ -60,13 +61,22 @@ const AllowIosPush = () => {
       };
     }
 
-    if (isAtHome && !isPermissionAllowed) {
+    if (
+      (isAtHome && !isPermissionAllowed) ||
+      (!isIOSDevice && !isPermissionAllowed)
+    ) {
       return {
         label: "Enable notifications to stay updated.",
         buttonLabel: "Enable",
         buttonActions: async () => {
-          const permission = await requestPermission();
-          console.log("Permission:", permission);
+          const res = await requestPermission();
+          if (res?.permission === "granted") {
+            setIsPermissionWant(false);
+          } else if (res?.permission === "denied") {
+            toast.error(
+              "Notifications are blocked by you. Please enable from browser settings.",
+            );
+          }
         },
       };
     }

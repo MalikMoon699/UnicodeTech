@@ -28,7 +28,6 @@ const Setting = () => {
     setLimit,
   } = useTheme();
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const [loadingType, setLoadingType] = useState("");
   const [name, setName] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
