@@ -8,17 +8,22 @@ const formatLocalDate = (date) => {
   return `${y}-${m}-${d}`;
 };
 
+const formatDay = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("en-US", {
+    weekday: "short",
+  });
+
 const getLast7Days = () => {
   const today = new Date();
-  const days = [];
+  const arr = [];
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(today.getDate() - i);
-    days.push(formatLocalDate(d));
+    arr.push(formatLocalDate(d));
   }
 
-  return days.reverse();
+  return arr;
 };
 
 const getMonthRange = () => {
@@ -33,134 +38,200 @@ const getMonthRange = () => {
   return { start, end };
 };
 
-const formatDay = (dateStr) =>
-  new Date(dateStr).toLocaleDateString("en-US", { weekday: "short" });
-
-const chunkIntoWeeks = (daysArray) => {
-  const weeks = [];
-  for (let i = 0; i < daysArray.length; i += 7) {
-    weeks.push(daysArray.slice(i, i + 7));
+const getCurrentWeek = () => {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(now);
+  start.setDate(now.getDate() + diffToMonday);
+  const week = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    week.push(formatLocalDate(d));
   }
+  return week;
+};
+
+const chunkIntoWeeks = (arr) => {
+  const weeks = [];
+
+  for (let i = 0; i < arr.length; i += 7) {
+    weeks.push(arr.slice(i, i + 7));
+  }
+
   return weeks;
 };
 
 const parseHoursToDecimal = (timeStr) => {
   if (!timeStr) return 0;
+
   const hourMatch = timeStr.match(/(\d+)h/);
   const minMatch = timeStr.match(/(\d+)m/);
+
   const hours = hourMatch ? parseInt(hourMatch[1], 10) : 0;
   const minutes = minMatch ? parseInt(minMatch[1], 10) : 0;
+
   if (minutes === 0) return hours;
+
   return parseFloat(`${hours}.${minutes}`);
+};
+
+const fetchUserAttendance = async (userId, start, end) => {
+  const snap = await getDocs(
+    query(
+      collection(db, "Attendance"),
+      where("userId", "==", userId),
+      where("createdAt", ">=", start),
+      where("createdAt", "<=", end),
+    ),
+  );
+
+  return snap.docs.map((d) => d.data());
+};
+
+const fetchUserLeaves = async (userId, lastDays) => {
+  const snap = await getDocs(
+    query(
+      collection(db, "leaveRequests"),
+      where("leaveDateKeys", "array-contains-any", lastDays),
+    ),
+  );
+
+  return snap.docs.map((d) => d.data()).filter((d) => d.createdBy === userId);
+};
+
+const processLeaves = (data, start, end, lastDays) => {
+  const leaveType = {
+    Pending: 0,
+    Approved: 0,
+    Rejected: 0,
+  };
+
+  const lastDaysSet = new Set(lastDays);
+
+  data.forEach((item) => {
+    item.dates?.forEach((d) => {
+      const date = formatLocalDate(new Date(d.date));
+
+      if (date >= formatLocalDate(start) && date <= formatLocalDate(end)) {
+        if (d.status === "pending") leaveType.Pending++;
+        else if (d.status === "approved") leaveType.Approved++;
+        else if (d.status === "rejected") leaveType.Rejected++;
+      }
+    });
+  });
+
+  return Object.entries(leaveType).map(([key, value]) => ({
+    key,
+    value,
+  }));
+};
+
+const buildMonthlyTrend = (attendanceMap, start, end) => {
+  const allDays = [];
+
+  let temp = new Date(start);
+  while (temp <= end) {
+    allDays.push(formatLocalDate(temp));
+    temp.setDate(temp.getDate() + 1);
+  }
+
+  const weeks = chunkIntoWeeks(allDays);
+
+  return weeks.map((week, i) => {
+    let Count = 0;
+
+    week.forEach((day) => {
+      if (attendanceMap[day]?.type === "present") {
+        Count++;
+      }
+    });
+
+    return {
+      key: `W${i + 1}`,
+      Count,
+    };
+  });
+};
+
+const buildMonthStates = (data) => {
+  let daysPresent = 0;
+  let leavesTaken = 0;
+  let absentDays = 0;
+
+  data.forEach((item) => {
+    if (item.type === "present") daysPresent++;
+    if (item.type === "leave" && item.status === "leave") leavesTaken++;
+    if (item.type === "absent") absentDays++;
+  });
+
+  const total = daysPresent + leavesTaken + absentDays;
+
+  return {
+    daysPresent,
+    leavesTaken,
+    absentDays,
+    attendanceRate: total
+      ? Number(((daysPresent / total) * 100).toFixed(1))
+      : 0,
+  };
+};
+
+const buildWeeklyWorkHours = (data) => {
+  const weekDays = getCurrentWeek();
+
+  const map = {};
+
+  weekDays.forEach((d) => {
+    map[d] = 0;
+  });
+
+  data.forEach((item) => {
+    const date = formatLocalDate(item.createdAt.toDate());
+
+    if (map[date] !== undefined) {
+      map[date] += parseHoursToDecimal(item.hours);
+    }
+  });
+
+  return weekDays.map((day) => ({
+    Day: formatDay(day),
+    Hour: map[day] || 0,
+  }));
 };
 
 export const getUserDashboard = async (userId) => {
   try {
     const { start, end } = getMonthRange();
     const last7Days = getLast7Days();
-    const todayStr = formatLocalDate(new Date());
-    const attendanceSnap = await getDocs(
-      query(
-        collection(db, "Attendance"),
-        where("userId", "==", userId),
-        where("createdAt", ">=", start),
-        where("createdAt", "<=", end),
-      ),
-    );
+    const [attendanceRaw, leaveRaw] = await Promise.all([
+      fetchUserAttendance(userId, start, end),
+      fetchUserLeaves(userId, last7Days),
+    ]);
 
-    let daysPresent = 0;
-    let leavesTaken = 0;
-    let absentDays = 0;
+    const attendance = buildMonthStates(attendanceRaw);
+    const weeklyWorkHours = buildWeeklyWorkHours(attendanceRaw);
+    const leaveTypeDistribution = processLeaves(
+      leaveRaw,
+      start,
+      end,
+      last7Days,
+    );
 
     const attendanceMap = {};
-
-    attendanceSnap.forEach((doc) => {
-      const data = doc.data();
-      const date = formatLocalDate(data.createdAt.toDate());
-
-      attendanceMap[date] = data;
-
-      if (data.type === "present") daysPresent++;
-      if (data.type === "leave") leavesTaken++;
-      if (data.type === "absent") absentDays++;
+    attendanceRaw.forEach((item) => {
+      const date = formatLocalDate(item.createdAt.toDate());
+      attendanceMap[date] = item;
     });
-
-    const totalDays = daysPresent + leavesTaken + absentDays;
-
-    const attendanceRate =
-      totalDays > 0 ? ((daysPresent / totalDays) * 100).toFixed(1) : 0;
-
-    const weeklyWorkHours = last7Days.map((day) => {
-      const record = attendanceMap[day];
-
-      return {
-        Day: formatDay(day),
-        Hour: parseHoursToDecimal(record?.hours),
-      };
-    });
-
-    const leaveSnap = await getDocs(
-      query(collection(db, "leaveRequests"), where("createdBy", "==", userId)),
-    );
-
-    const leaveType = {
-      Pending: 0,
-      Approved: 0,
-      Rejected: 0,
-    };
-
-    leaveSnap.forEach((doc) => {
-      const data = doc.data();
-
-      data.dates.forEach((d) => {
-        const date = formatLocalDate(new Date(d.date));
-
-        if (date >= formatLocalDate(start) && date <= formatLocalDate(end)) {
-          if (d.status === "pending") leaveType.Pending++;
-          if (d.status === "approved") leaveType.Approved++;
-          if (d.status === "rejected") leaveType.Rejected++;
-        }
-      });
-    });
-
-    const leaveTypeDistribution = Object.entries(leaveType).map(
-      ([key, value]) => ({
-        key,
-        value,
-      }),
-    );
-
-    const allMonthDays = [];
-
-    let temp = new Date(start);
-    while (temp <= end) {
-      allMonthDays.push(formatLocalDate(temp));
-      temp.setDate(temp.getDate() + 1);
-    }
-
-    const weeks = chunkIntoWeeks(allMonthDays);
-
-    const monthlyAttendanceTrend = weeks.map((week, index) => {
-      let Count = 0;
-
-      week.forEach((day) => {
-        if (attendanceMap[day]?.type === "present") {
-          Count++;
-        }
-      });
-
-      return {
-        key: `W${index + 1}`,
-        Count,
-      };
-    });
+    const monthlyAttendanceTrend = buildMonthlyTrend(attendanceMap, start, end);
 
     return {
       States: {
-        daysPresent,
-        leavesTaken,
-        absentDays,
-        attendanceRate: Number(attendanceRate),
+        daysPresent: attendance.daysPresent,
+        leavesTaken: attendance.leavesTaken,
+        absentDays: attendance.absentDays,
+        attendanceRate: attendance.attendanceRate,
       },
       weeklyWorkHours,
       leaveTypeDistribution,
@@ -176,8 +247,9 @@ const weeklyWorkHours = [
   { Day: "Mon", Hour: 0 },
   { Day: "Tue", Hour: 0 },
   { Day: "Wed", Hour: 0 },
-  { Day: "Thr", Hour: 0 },
+  { Day: "Thu", Hour: 0 },
   { Day: "Fri", Hour: 0 },
+  { Day: "Sat", Hour: 0 },
   { Day: "Sun", Hour: 0 },
 ];
 

@@ -6,7 +6,8 @@ import {
 } from "../../components/CustomComponents";
 import { ChartCard } from "../../components/ChartsComponents";
 import {
-  getUserDashboard,fallBacks
+  getUserDashboard,
+  fallBacks,
 } from "../../services/user/dashboard.services";
 import {
   CalendarCheck,

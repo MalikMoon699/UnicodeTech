@@ -12,8 +12,52 @@ import {
   serverTimestamp,
   getDoc,
   setDoc,
-  deleteDoc,
+  deleteDoc,getCountFromServer
 } from "firebase/firestore";
+
+export const getUserStatesHelper = async () => {
+  try {
+    const usersRef = collection(db, "UserIndex");
+
+    const totalUsersQ = query(
+      usersRef,
+      where("role", "!=", "admin"),
+      where("role", "==", "user"),
+    );
+
+    const totalManagersQ = query(usersRef, where("role", "==", "manager"));
+
+    const activeQ = query(
+      usersRef,
+      where("status", "==", "active"),
+      where("role", "!=", "admin"),
+    );
+
+    const inactiveQ = query(
+      usersRef,
+      where("status", "==", "inactive"),
+      where("role", "!=", "admin"),
+    );
+
+    const [usersSnap, managersSnap, activeSnap, inactiveSnap] =
+      await Promise.all([
+        getCountFromServer(totalUsersQ),
+        getCountFromServer(totalManagersQ),
+        getCountFromServer(activeQ),
+        getCountFromServer(inactiveQ),
+      ]);
+
+    return {
+      totalUsers: usersSnap.data().count,
+      totalManagers: managersSnap.data().count,
+      active: activeSnap.data().count,
+      inactive: inactiveSnap.data().count,
+    };
+  } catch (error) {
+    console.error("getUserStates error:", error);
+    throw error;
+  }
+};
 
 export const getUsersHelper = async ({
   limit: pageLimit = 10,
@@ -125,51 +169,6 @@ export const getUsersWithoutPaginationHelper = async ({
     throw err;
   }
 };
-
-
-// export const getUsersWithoutPaginationHelper = async ({
-//   search = "",
-//   role = "all",
-// }) => {
-//   try {
-//     const baseRef = collection(db, "UserIndex");
-
-//     const searchValue = search.toLowerCase().replace(/\s+/g, "");
-
-//     let constraints = [];
-//     constraints.push(where("status", "==", "active"));
-//     if (role !== "all") {
-//       constraints.push(where("role", "==", role));
-//     } else {
-//       constraints.push(where("role", "in", ["user", "manager"]));
-//     }
-
-//     if (searchValue) {
-//       constraints.push(where("searchText", "array-contains", searchValue));
-//     }
-
-//     const q = query(baseRef, ...constraints);
-//     const snap = await getDocs(q);
-//     const users = await Promise.all(
-//       snap.docs.map(async (docSnap) => {
-//         const indexData = docSnap.data();
-
-//         const userRef = doc(db, indexData.collection, indexData.docId);
-//         const userSnap = await getDoc(userRef);
-
-//         return {
-//           _id: indexData.docId,
-//           ...(userSnap.exists() ? userSnap.data() : {}),
-//         };
-//       }),
-//     );
-
-//     return users;
-//   } catch (err) {
-//     console.error("getUsersWithoutPaginationHelper error:", err);
-//     throw err;
-//   }
-// };
 
 export const updateUserStatus = async ({ user, status }) => {
   try {

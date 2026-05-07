@@ -3,23 +3,35 @@ import {
   getUsersHelper,
   updateUserStatus,
   updateUserRole,
+  getUserStatesHelper,
 } from "../../services/admin/users.serveces";
 import {
   Header,
   Input,
   LoadMore,
   Selector,
+  StatesCard,
 } from "../../components/CustomComponents";
 import CustomTable from "../../components/CustomTable";
 import { useDebounce } from "../../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../../components/Loader";
 import { formateDate, timeAgo } from "../../utils/helper";
-import { User, UserCheck, UserPen, UserX } from "lucide-react";
+import {
+  Briefcase,
+  User,
+  Users as LucideUsers,
+  UserCheck,
+  UserMinus,
+  UserPen,
+  UserX,
+} from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
 const Users = () => {
   const { limit } = useTheme();
+  const [loadingStates, setLoadingStates] = useState(true);
+  const [states, setStates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(null);
   const [roleLoading, setRoleLoading] = useState(null);
@@ -36,8 +48,24 @@ const Users = () => {
   const debounceSearch = useDebounce(search, 500);
 
   useEffect(() => {
+    fetchUsersStates();
+  }, []);
+
+  useEffect(() => {
     fetchUsers(true);
   }, [debounceSearch, status, roleFilter]);
+
+  const fetchUsersStates = async () => {
+    try {
+      setLoadingStates(true);
+      const res = await getUserStatesHelper();
+      setStates(res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingStates(false);
+    }
+  };
 
   const fetchUsers = async (reset = false) => {
     try {
@@ -314,6 +342,39 @@ const Users = () => {
   return (
     <div className="page-container">
       <Header title="User Management" desc="Manage platform users" />
+      <div
+        style={{ margin: "30px 0px" }}
+        className="custom-dashboard-stats-container"
+      >
+        <StatesCard
+          icon={LucideUsers}
+          iColor="var(--card-foreground)"
+          title="Total Users"
+          value={states?.totalUsers || 0}
+          loading={loadingStates}
+        />
+        <StatesCard
+          icon={Briefcase}
+          iColor="var(--primary)"
+          title="Total Managers"
+          value={states?.totalManagers || 0}
+          loading={loadingStates}
+        />
+        <StatesCard
+          icon={UserCheck}
+          iColor="var(--status-approved)"
+          title="Active"
+          value={states?.active || 0}
+          loading={loadingStates}
+        />
+        <StatesCard
+          icon={UserMinus}
+          iColor="var(--status-rejected)"
+          title="Banned"
+          value={states?.inactive || 0}
+          loading={loadingStates}
+        />
+      </div>
       <div className="custom-table-card">
         <h3 className="custom-section-title">User Records </h3>
         <div className="custom-table-filters">
