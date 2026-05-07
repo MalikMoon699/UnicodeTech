@@ -16,35 +16,109 @@ import {
   CalendarClock,
   Clock,
   FileText,
+  RefreshCcw,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setAdminDashBoardData,
+  setAdmin30DayDashBoardData,
+} from "../../store/features/AdminDashboard.reducer";
 
 const DashBoard = () => {
-  const [loading, setoading] = useState(false);
+  const dispatch = useDispatch();
+  const {
+    statesLocal,
+    leaveDistributionLocal,
+    attendanceLocal,
+    reportLocal,
+    lastFetchedLocal,
+
+    states30DayLocal,
+    leave30DayDistributionLocal,
+    attendance30DayLocal,
+    report30DayLocal,
+    lastFetched30DayLocal,
+  } = useSelector((state) => state.adminDashboard);
+  const [loading, setLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
   const [dayFilter, setDayFilter] = useState(7);
   const [states, setStates] = useState(null);
   const [leaveDistribution, setLeaveDistribution] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [report, setReport] = useState([]);
+  const FIVE_MIN = 5 * 60 * 1000;
 
   useEffect(() => {
+    const is30 = dayFilter === 30;
+
+    const isCacheValid = is30
+      ? lastFetched30DayLocal && Date.now() - lastFetched30DayLocal < FIVE_MIN
+      : lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_MIN;
+
+    const hasData = is30 ? states30DayLocal : statesLocal;
+
+    if (isCacheValid && hasData) {
+      if (is30) {
+        setStates(states30DayLocal);
+        setAttendance(attendance30DayLocal);
+        setLeaveDistribution(leave30DayDistributionLocal);
+        setReport(report30DayLocal);
+      } else {
+        setStates(statesLocal);
+        setAttendance(attendanceLocal);
+        setLeaveDistribution(leaveDistributionLocal);
+        setReport(reportLocal);
+      }
+      return;
+    }
+
     getData(dayFilter);
   }, [dayFilter]);
 
-  const getData = async (days) => {
-    try {
-      setoading(true);
-      const res = await getDashboardData(days);
-      setStates(res?.States);
-      setAttendance(res?.attendanceTrend);
-      setLeaveDistribution(res?.leaveTypeDistribution);
-      setReport(res?.reportSubmistion);
-    } catch (err) {
-      console.error("Failed to load Dashboard:", err);
-    } finally {
-      setoading(false);
+const getData = async (days, refresh = false) => {
+  try {
+    if (refresh) setRefreshLoading(true);
+    else setLoading(true);
+
+    const res = await getDashboardData(days);
+
+    setStates(res?.States);
+    setAttendance(res?.attendanceTrend);
+    setLeaveDistribution(res?.leaveTypeDistribution);
+    setReport(res?.reportSubmistion);
+
+    if (days === 30) {
+      dispatch(
+        setAdmin30DayDashBoardData({
+          states30DayLocal: res?.States,
+          leave30DayDistributionLocal: res?.leaveTypeDistribution,
+          attendance30DayLocal: res?.attendanceTrend,
+          report30DayLocal: res?.reportSubmistion,
+          lastFetched30DayLocal: Date.now(),
+        }),
+      );
+    } else {
+      dispatch(
+        setAdminDashBoardData({
+          statesLocal: res?.States,
+          leaveDistributionLocal: res?.leaveTypeDistribution,
+          attendanceLocal: res?.attendanceTrend,
+          reportLocal: res?.reportSubmistion,
+          lastFetchedLocal: Date.now(),
+        }),
+      );
     }
-  };
+
+    if (refresh) toast.success("data refreshed successfully.");
+  } catch (err) {
+    console.error("Failed to load Dashboard:", err);
+  } finally {
+    setLoading(false);
+    setRefreshLoading(false);
+  }
+};
 
   return (
     <div className="page-container">
@@ -52,15 +126,36 @@ const DashBoard = () => {
         title="Admin overview"
         desc="Here’s your system current progress."
         context={
-          <Selector
-            filter={dayFilter}
-            setFilter={setDayFilter}
-            options={[
-              { filter: 7, label: "Last 7 days" },
-              { filter: 30, label: "Last 30 days" },
-            ]}
-            width="170px"
-          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "end",
+              gap: "5px",
+            }}
+          >
+            <button
+              onClick={() => getData(dayFilter, true)}
+              className="leave-submit-btn"
+            >
+              <span
+                className={`icon ${refreshLoading ? "refresh-loading" : ""}`}
+              >
+                <RefreshCcw size={18} />
+              </span>
+              Refresh
+            </button>
+            <Selector
+              filter={dayFilter}
+              setFilter={setDayFilter}
+              disabled={loading}
+              options={[
+                { filter: 7, label: "Last 7 days" },
+                { filter: 30, label: "Last 30 days" },
+              ]}
+              width="170px"
+            />
+          </div>
         }
       />
       <div
@@ -76,21 +171,21 @@ const DashBoard = () => {
         />
         <StatesCard
           icon={Briefcase}
-          iColor="var(--card-foreground)"
+          iColor="var(--primary)"
           title="Total Managers"
           value={states?.totalManagers || 0}
           loading={loading}
         />
         <StatesCard
           icon={CalendarCheck}
-          iColor="var(--card-foreground)"
+          iColor="var(--status-approved)"
           title="Active Today"
           value={states?.activeToday || 0}
           loading={loading}
         />
         <StatesCard
           icon={CalendarClock}
-          iColor="var(--card-foreground)"
+          iColor="var(--status-pending)"
           title="Pending Leaves"
           value={states?.pendingLeavesToday || 0}
           loading={loading}

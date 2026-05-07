@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
     "@tiptap/extension-code-block-lowlight": "^3.22.4",
     "@tiptap/extension-mention": "^3.22.4",
     "@tiptap/extension-placeholder": "^3.22.4",

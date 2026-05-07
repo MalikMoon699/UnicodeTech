@@ -3,6 +3,7 @@ import {
   Header,
   QuickActionCard,
   StatesCard,
+  Tabs,
 } from "../../components/CustomComponents";
 import { ChartCard } from "../../components/ChartsComponents";
 import {
@@ -17,16 +18,39 @@ import {
   Clock,
   FileText,
   Percent,
+  RefreshCcw,
   User,
   Users,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getUserDashboard } from "../../services/user/dashboard.services";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setManagerDashBoardData,
+  setManagerTeamDashBoardData,
+} from "../../store/features/ManagerDashboard.reducer";
+import { toast } from "sonner";
 
 const DashBoard = () => {
+  const dispatch = useDispatch();
+  const {
+    statesLocal,
+    weeklyHourLocal,
+    leaveDistributionLocal,
+    attendanceTrendLocal,
+    lastFetchedLocal,
+
+    teamStatesLocal,
+    teamLeaveDistributionLocal,
+    teamAttendanceLocal,
+    teamReportLocal,
+    teamLastFetchedLocal,
+  } = useSelector((state) => state.managerDashboard);
   const { currentUser } = useAuth();
   const userId = currentUser?.userId;
   const [loading, setLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+
   const [isMy, setIsMy] = useState(true);
   const [states, setStates] = useState(null);
   const [weeklyHour, setWeeklyHour] = useState([]);
@@ -35,33 +59,84 @@ const DashBoard = () => {
   const [teamAttendance, setTeamAttendance] = useState([]);
   const [teamReport, setTeamReport] = useState([]);
 
+  const FIVE_MIN = 5 * 60 * 1000;
+
   useEffect(() => {
-    if (userId) {
-      getData(userId);
+    if (!userId) return;
+
+    const isMyTab = isMy;
+
+    if (isMyTab) {
+      const isCacheValid =
+        lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_MIN;
+      if (isCacheValid && statesLocal) {
+        setStates(statesLocal);
+        setWeeklyHour(weeklyHourLocal);
+        setLeaveDistribution(leaveDistributionLocal);
+        setAttendanceTrend(attendanceTrendLocal);
+        return;
+      }
+    } else {
+      const isCacheValid =
+        teamLastFetchedLocal && Date.now() - teamLastFetchedLocal < FIVE_MIN;
+      if (isCacheValid && teamStatesLocal) {
+        setStates(teamStatesLocal);
+        setTeamAttendance(teamAttendanceLocal);
+        setLeaveDistribution(teamLeaveDistributionLocal);
+        setTeamReport(teamReportLocal);
+        return;
+      }
     }
+
+    getData(userId);
   }, [userId, isMy]);
 
-  const getData = async (userId) => {
+  const getData = async (userId, refresh = false) => {
     try {
-      setLoading(true);
+      if (refresh) setRefreshLoading(true);
+      else setLoading(true);
 
       if (isMy) {
         const res = await getUserDashboard(userId);
+
         setStates(res?.States);
         setWeeklyHour(res?.weeklyWorkHours);
         setLeaveDistribution(res?.leaveTypeDistribution);
         setAttendanceTrend(res?.monthlyAttendanceTrend);
+
+        dispatch(
+          setManagerDashBoardData({
+            statesLocal: res?.States,
+            weeklyHourLocal: res?.weeklyWorkHours,
+            leaveDistributionLocal: res?.leaveTypeDistribution,
+            attendanceTrendLocal: res?.monthlyAttendanceTrend,
+            lastFetchedLocal: Date.now(),
+          }),
+        );
       } else {
         const res = await getManagerDashboard(userId);
+
         setStates(res?.teamStates);
         setTeamAttendance(res?.teamAttendanceWeekly);
         setLeaveDistribution(res?.teamLeaveTypeDistribution);
         setTeamReport(res?.teamReportSubmistionWeekly);
+
+        dispatch(
+          setManagerTeamDashBoardData({
+            teamStatesLocal: res?.teamStates,
+            teamAttendanceLocal: res?.teamAttendanceWeekly,
+            teamLeaveDistributionLocal: res?.teamLeaveTypeDistribution,
+            teamReportLocal: res?.teamReportSubmistionWeekly,
+            teamLastFetchedLocal: Date.now(),
+          }),
+        );
       }
+      if (refresh) toast.success("data refreshed successfully.");
     } catch (err) {
       console.error("Failed to load Dashboard:", err);
     } finally {
       setLoading(false);
+      setRefreshLoading(false);
     }
   };
 
@@ -74,15 +149,38 @@ const DashBoard = () => {
             ? "Here's how your month is shaping up."
             : "Here’s your team's current progress."
         }
-        isTab={true}
-        tabDisabled={loading}
-        tabState={isMy}
-        setTabState={setIsMy}
-        tabOptions={[
-          { label: "My", value: true, icon: User },
-          { label: "Team", value: false, icon: Users },
-        ]}
-        tabOuterWidth="fit-content"
+        context={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "end",
+              gap: "5px",
+            }}
+          >
+            <button
+              onClick={() => getData(userId, true)}
+              className="leave-submit-btn"
+            >
+              <span
+                className={`icon ${refreshLoading ? "refresh-loading" : ""}`}
+              >
+                <RefreshCcw size={18} />
+              </span>
+              Refresh
+            </button>
+            <Tabs
+              tab={isMy}
+              setTab={setIsMy}
+              disabled={loading}
+              options={[
+                { label: "My", value: true, icon: User },
+                { label: "Team", value: false, icon: Users },
+              ]}
+              outerWidth="fit-content"
+            />
+          </div>
+        }
       />
       <div
         style={{ margin: "30px 0px" }}

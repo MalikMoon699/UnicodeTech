@@ -16,42 +16,93 @@ import {
   Clock,
   FileText,
   Percent,
+  RefreshCcw,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useDispatch, useSelector } from "react-redux";
+import { setUserDashBoardData } from "../../store/features/UserDashboard.reducer";
+import { toast } from "sonner";
 
 const DashBoard = () => {
+  const dispatch = useDispatch();
+  const {
+    statesLocal,
+    weeklyHourLocal,
+    leaveDistributionLocal,
+    attendanceTrendLocal,
+    lastFetchedLocal,
+  } = useSelector((state) => state.userDashboard);
   const { currentUser } = useAuth();
   const userId = currentUser?.userId;
-  const [loading, setoading] = useState(false);
-  const [states, setStates] = useState(null);
-  const [weeklyHour, setWeeklyHour] = useState([]);
-  const [leaveDistribution, setLeaveDistribution] = useState([]);
-  const [attendanceTrend, setatAtendanceTrend] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  
+  const hasStatesData = statesLocal !== null;
+  const hasWeeklyHourData = weeklyHourLocal?.length > 0;
+  const hasLeaveDistributionData = leaveDistributionLocal?.length > 0;
+  const hasAttendanceTrendData = attendanceTrendLocal?.length > 0;
+  const hasData =
+    hasStatesData ||
+    hasWeeklyHourData ||
+    hasLeaveDistributionData ||
+    hasAttendanceTrendData;
 
   useEffect(() => {
-    getData(userId);
+    if (!userId) return;
+    const FIVE_MIN = 5 * 60 * 1000;
+    const isCacheValid =
+      lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_MIN;
+    if (isCacheValid && hasData) {
+      return;
+    } else {
+      getData(userId);
+    }
   }, [userId]);
 
-  const getData = async (userId) => {
+  const getData = async (userId, refresh = false) => {
+    if (!userId) return console.err("UserId required.");
     try {
-      setoading(true);
+      if (refresh) setRefreshLoading(true);
+      else setLoading(true);
       const res = await getUserDashboard(userId);
-      setStates(res?.States);
-      setWeeklyHour(res?.weeklyWorkHours);
-      setLeaveDistribution(res?.leaveTypeDistribution);
-      setatAtendanceTrend(res?.monthlyAttendanceTrend);
+      const payload = {
+        statesLocal: res?.States,
+        weeklyHourLocal: res?.weeklyWorkHours,
+        leaveDistributionLocal: res?.leaveTypeDistribution,
+        attendanceTrendLocal: res?.monthlyAttendanceTrend,
+        lastFetchedLocal: Date.now(),
+      };
+      dispatch(setUserDashBoardData(payload));
+      if (refresh) toast.success("data refreshed successfully.");
     } catch (err) {
       console.error("Failed to load Dashboard:", err);
     } finally {
-      setoading(false);
+      setLoading(false);
+      setRefreshLoading(false);
     }
   };
+
+    const states = statesLocal;
+    const weeklyHour = weeklyHourLocal;
+    const leaveDistribution = leaveDistributionLocal;
+    const attendanceTrend = attendanceTrendLocal;
 
   return (
     <div className="page-container">
       <Header
         title="Welcome back 👋"
         desc="Here's how your month is shaping up."
+        context={
+          <button
+            onClick={() => getData(userId, true)}
+            className="leave-submit-btn"
+          >
+            <span className={`icon ${refreshLoading ? "refresh-loading" : ""}`}>
+              <RefreshCcw size={18} />
+            </span>
+            Refresh
+          </button>
+        }
       />
       <div
         style={{ margin: "30px 0px" }}
@@ -59,28 +110,28 @@ const DashBoard = () => {
       >
         <StatesCard
           icon={CalendarCheck}
-          iColor="var(--card-foreground)"
+          iColor="var(--status-approved)"
           title="Days Present"
           value={states?.daysPresent || 0}
           loading={loading}
         />
         <StatesCard
           icon={CalendarDays}
-          iColor="var(--card-foreground)"
+          iColor="var(--status-pending)"
           title="Leaves Taken"
           value={states?.leavesTaken || 0}
           loading={loading}
         />
         <StatesCard
           icon={CalendarMinus2}
-          iColor="var(--card-foreground)"
+          iColor="var(--status-rejected)"
           title="Absent Days"
           value={states?.absentDays || 0}
           loading={loading}
         />
         <StatesCard
           icon={Percent}
-          iColor="var(--card-foreground)"
+          iColor="var(--status-approved)"
           title="Attendance Rate"
           value={`${states?.attendanceRate || 0}%`}
           loading={loading}

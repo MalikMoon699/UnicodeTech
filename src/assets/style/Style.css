@@ -10,6 +10,20 @@
   transition: 0.3s;
 }
 
+.icon.refresh-loading {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 :root {
   --background: #ffffff;
   --gradian-background: linear-gradient(
