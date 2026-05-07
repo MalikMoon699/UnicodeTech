@@ -20,6 +20,7 @@ import Instruction1 from "../assets/images/Instruction/Instruction1.png";
 import Instruction2 from "../assets/images/Instruction/Instruction2.png";
 import Instruction3 from "../assets/images/Instruction/Instruction3.png";
 import Instruction4 from "../assets/images/Instruction/Instruction4.png";
+import NotificationSound from "../assets/sounds/notificationBell.mp3";
 
 export const IMAGES = {
   SiteLogo,
@@ -45,6 +46,8 @@ export const IMAGES = {
   Instruction3,
   Instruction4,
 };
+
+export const SOUNDS = { NotificationSound };
 
 export const AdminSidebarMenu = [
   {

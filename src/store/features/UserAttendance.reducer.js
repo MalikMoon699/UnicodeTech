@@ -2,40 +2,28 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  monthlyData: {}, // { "YYYY-MM-DD": record }
+  calendarData: {},
+  todayRecord: null,
   lastPending: null,
-  loading: false,
-  error: null,
+  selectedDate: new Date().toISOString(),
 };
 
 const userAttendanceSlice = createSlice({
   name: "userAttendance",
   initialState,
   reducers: {
-    setMonthlyData(state, action) {
-      state.monthlyData = action.payload;
-    },
-    updateRecord(state, action) {
-      const { date, record } = action.payload;
-      state.monthlyData[date] = record;
-    },
-    setLastPending(state, action) {
+    setAttendanceData: (state, action) => {
+      state.calendarData = action.payload;
+      state.todayRecord = action.payload;
       state.lastPending = action.payload;
+      state.selectedDate = action.payload;
     },
-    setLoading(state, action) {
-      state.loading = action.payload;
-    },
-    setError(state, action) {
-      state.error = action.payload;
-    },
+
+    resetAttendance: () => initialState,
   },
 });
 
-export const {
-  setMonthlyData,
-  updateRecord,
-  setLastPending,
-  setLoading,
-  setError,
-} = userAttendanceSlice.actions;
+export const { setAttendanceData, resetAttendance } =
+  userAttendanceSlice.actions;
+
 export default userAttendanceSlice.reducer;

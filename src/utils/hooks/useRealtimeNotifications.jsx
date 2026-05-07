@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   collection,
   query,
@@ -9,11 +9,17 @@ import {
 import { db } from "../FirebaseConfig";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
+import { SOUNDS } from "../constants";
 
 export const useRealtimeNotifications = (currentUser) => {
   const navigate = useNavigate();
+  const audioRef = useRef(null);
+
   useEffect(() => {
     if (!currentUser) return;
+
+    audioRef.current = new Audio(SOUNDS.NotificationSound);
+    audioRef.current.volume = 0.8;
 
     const notificationsRef = collection(
       db,
@@ -30,6 +36,12 @@ export const useRealtimeNotifications = (currentUser) => {
           const data = change.doc.data();
           if (data.seen) return;
 
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(() => {
+            });
+          }
+
           const { title, body, link } = data;
 
           toast.custom(
@@ -38,15 +50,18 @@ export const useRealtimeNotifications = (currentUser) => {
                 style={{
                   padding: "12px",
                   borderRadius: "8px",
-                  background: " var(--card)",
+                  background: "var(--card)",
                   color: "var(--card-foreground)",
-                  border: " 1px solid var(--border)",
+                  border: "1px solid var(--border)",
                   cursor: "pointer",
                   minWidth: "320px",
                   maxWidth: "98vw",
                   boxShadow: "0px 0px 8px var(--shadow)",
                 }}
-                onClick={() => link && navigate(link)}
+                onClick={() => {
+                  toast.dismiss();
+                  if (link) navigate(link);
+                }}
               >
                 <div style={{ fontWeight: "600" }}>{title}</div>
                 <div style={{ fontSize: "14px", opacity: 0.8 }}>{body}</div>
