@@ -231,3 +231,23 @@ export const getAuthErrorMessage = (err) => {
       return "Something went wrong. Please try again.";
   }
 };
+
+export const serializeData = (data) => {
+  if (Array.isArray(data)) {
+    return data.map(serializeData);
+  }
+
+  if (data && typeof data === "object") {
+    if (data?.toMillis) {
+      return data.toMillis();
+    }
+
+    const obj = {};
+    Object.keys(data).forEach((key) => {
+      obj[key] = serializeData(data[key]);
+    });
+    return obj;
+  }
+
+  return data;
+};

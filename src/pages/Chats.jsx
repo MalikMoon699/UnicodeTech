@@ -40,7 +40,6 @@ import {
   Shield,
   MessageSquare,
   LogOut,
-  Trash2Icon,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -691,7 +690,9 @@ const Chats = () => {
                   </div>
                 ))
               ) : (
-                <p className="empty-data">no channel found.</p>
+                <p style={{ padding: "20px" }} className="empty-data">
+                  no channel found.
+                </p>
               )}
             </div>
           )}
@@ -742,7 +743,9 @@ const Chats = () => {
                   );
                 })
               ) : (
-                <p className="empty-data">No chats found.</p>
+                <p style={{ padding: "20px" }} className="empty-data">
+                  No chats found.
+                </p>
               )}
             </div>
           )}
@@ -798,7 +801,9 @@ const Chats = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="empty-data">No user found.</p>
+                  <p style={{ padding: "20px" }} className="empty-data">
+                    No user found.
+                  </p>
                 )}
               </div>
             )}
@@ -1296,7 +1301,9 @@ const CreateGroupModel = ({
                 );
               })
             ) : (
-              <p className="empty-data">No user found.</p>
+              <p style={{ padding: "20px" }} className="empty-data">
+                No user found.
+              </p>
             )}
           </div>
           <div className="submit-modal-container">

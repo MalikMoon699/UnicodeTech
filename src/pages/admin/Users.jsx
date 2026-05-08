@@ -4,7 +4,6 @@ import {
   updateUserStatus,
   updateUserRole,
   getUserStatesHelper,
-  serializeUsers,
 } from "../../services/admin/users.serveces";
 import {
   Header,
@@ -17,7 +16,7 @@ import CustomTable from "../../components/CustomTable";
 import { useDebounce } from "../../utils/hooks/useDebounce";
 import { toast } from "sonner";
 import Loader from "../../components/Loader";
-import { formateDate, timeAgo } from "../../utils/helper";
+import { formateDate, serializeData, timeAgo } from "../../utils/helper";
 import {
   Briefcase,
   User,
@@ -122,7 +121,7 @@ const Users = () => {
       const isDefaultFilters =
         !debounceSearch && status === "all" && roleFilter === "all";
       if (reset && isDefaultFilters) {
-        const serializedUsers = serializeUsers(newUsers);
+        const serializedUsers = serializeData(newUsers);
         dispatch(
           setAdminUsersData({
             usersLocal: serializedUsers,

@@ -259,21 +259,3 @@ export const updateUserRole = async ({ authId, newRole }) => {
     throw err;
   }
 };
-
-export const serializeUsers = (users = []) => {
-  return users.map((user) => {
-    const serializedUser = {};
-
-    Object.keys(user).forEach((key) => {
-      const value = user[key];
-
-      if (value?.toMillis) {
-        serializedUser[key] = value.toMillis();
-      } else {
-        serializedUser[key] = value;
-      }
-    });
-
-    return serializedUser;
-  });
-};
