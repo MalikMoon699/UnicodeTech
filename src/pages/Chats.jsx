@@ -18,6 +18,8 @@ import {
   deleteMessage,
   listenMessageUpdate,
   UpdateGroup,
+  DeleteGroup,
+  LeaveGroup,
 } from "../services/chats.services";
 import "../assets/style/Chats.css";
 import {
@@ -38,6 +40,7 @@ import {
   Shield,
   MessageSquare,
   LogOut,
+  Trash2Icon,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -69,6 +72,8 @@ const Chats = () => {
   const [search, setSearch] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+  const [isDeleteGroup, setIsDeleteGroup] = useState(false);
+  const [isLeaveGroup, setIsLeaveGroup] = useState(false);
   const [startChatLoading, setStartChatLoading] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [showDMs, setShowDMs] = useState(false);
@@ -827,6 +832,8 @@ const Chats = () => {
                   selectedChat={activeChatData}
                   chatUsers={selectedChatUsers}
                   onEdit={() => setEditingGroup(activeChatData)}
+                  onDelete={() => setIsDeleteGroup(true)}
+                  onLeave={() => setIsLeaveGroup(true)}
                 />
               </div>
             ) : (
@@ -1052,6 +1059,18 @@ const Chats = () => {
           }}
           isEdit={!!editingGroup}
           groupData={editingGroup}
+        />
+      )}
+      {isDeleteGroup && (
+        <DeletGroupConfirm
+          onClose={() => setIsDeleteGroup(false)}
+          selectedChat={activeChatData}
+        />
+      )}
+      {isLeaveGroup && (
+        <LeaveGroupConfirm
+          onClose={() => setIsLeaveGroup(false)}
+          selectedChat={activeChatData}
         />
       )}
     </div>
@@ -1361,7 +1380,140 @@ const DeletConfirm = ({ onClose, onDelete }) => {
   );
 };
 
-const SelectChatDetails = ({ selectedChat = null, chatUsers = [], onEdit }) => {
+const DeletGroupConfirm = ({ onClose, selectedChat }) => {
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      await DeleteGroup(selectedChat?.chatId);
+      navigate("/chats");
+      onClose();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} className="model-overlay">
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        className="model-content-container logout-modal"
+      >
+        <div className="logout-icon">
+          <TriangleAlert size={48} />
+        </div>
+
+        <h2 className="logout-title">Delete Channel?</h2>
+
+        <p className="logout-text">
+          Are you sure you want to delete this Channel?
+        </p>
+
+        <div className="logout-actions">
+          <button
+            className="logout-action-btn logout-action-primary"
+            onClick={onClose}
+          >
+            <span className="icon">
+              <CircleX />
+            </span>
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={loading}
+            className="logout-action-btn logout-action-secondary"
+          >
+            <span className="icon">
+              <Trash2 />
+            </span>
+            {loading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LeaveGroupConfirm = ({ onClose, selectedChat }) => {
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      await LeaveGroup(
+        selectedChat?.chatId,
+        currentUser?.userId,
+        currentUser?.authId,
+      );
+      navigate("/chats");
+      onClose();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} className="model-overlay">
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        className="model-content-container logout-modal"
+      >
+        <div className="logout-icon">
+          <TriangleAlert size={48} />
+        </div>
+
+        <h2 className="logout-title">Leave Channel?</h2>
+
+        <p className="logout-text">
+          Are you sure you want to leave this Channel?
+        </p>
+
+        <div className="logout-actions">
+          <button
+            className="logout-action-btn logout-action-primary"
+            onClick={onClose}
+          >
+            <span className="icon">
+              <CircleX />
+            </span>
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={loading}
+            className="logout-action-btn logout-action-secondary"
+          >
+            <span className="icon">
+              <LogOut />
+            </span>
+            {loading ? "Leaving..." : "Leave"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SelectChatDetails = ({
+  selectedChat = null,
+  chatUsers = [],
+  onEdit,
+  onDelete,
+  onLeave,
+}) => {
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const sidebarRef = useRef(null);
@@ -1414,11 +1566,16 @@ const SelectChatDetails = ({ selectedChat = null, chatUsers = [], onEdit }) => {
             }}
           >
             {currentUser?.userId === selectedChat?.createdBy ? (
-              <button className="chat-topbar-btn" onClick={() => onEdit()}>
-                <Edit size={18} />
-              </button>
+              <>
+                <button className="chat-topbar-btn" onClick={() => onEdit()}>
+                  <Edit size={18} />
+                </button>
+                <button className="chat-topbar-btn" onClick={() => onDelete()}>
+                  <Trash2 size={18} />
+                </button>
+              </>
             ) : (
-              <button className="chat-topbar-btn" onClick={() => onEdit()}>
+              <button className="chat-topbar-btn" onClick={() => onLeave()}>
                 <LogOut size={18} />
               </button>
             )}

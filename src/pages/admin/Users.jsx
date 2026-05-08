@@ -81,12 +81,10 @@ const Users = () => {
   }, [debounceSearch, status, roleFilter]);
 
   const fetchUsersStates = async (isRefresh = false) => {
-    console.log("fetchUsersStates----> hit");
     try {
       if (!isRefresh) setLoadingStates(true);
       const res = await getUserStatesHelper();
       setStates(res);
-      console.log("res---->", res);
       dispatch(
         setAdminUsersData({
           statesLocal: res,
