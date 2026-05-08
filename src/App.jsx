@@ -40,27 +40,17 @@ const App = () => {
   usePresence(currentUser);
   useRealtimeNotifications(currentUser);
 
-  // useEffect(() => {
-  //   initMessaging(Push_Notification_Api);
-  //   const unsubscribe = onMessageListener(async (payload) => {
-  //     const { title, body, image } = payload.notification;
-  //     const link = payload.data?.clickUrl || "/";
-  //     const registration = await navigator.serviceWorker.ready;
-  //     registration.showNotification(title, {
-  //       body,
-  //       icon: image,
-  //       data: { clickUrl: link },
-  //     });
-  //   }, Push_Notification_Api);
-
-  //   return () => unsubscribe();
-  // }, []);
   useEffect(() => {
     initMessaging(Push_Notification_Api);
-    const unsubscribe = onMessageListener((payload) => {
+    const unsubscribe = onMessageListener(async (payload) => {
       const { title, body, image } = payload.notification;
       const link = payload.data?.clickUrl || "/";
-      console.log("Foreground notification:", payload);
+      const registration = await navigator.serviceWorker.ready;
+      registration.showNotification(title, {
+        body,
+        icon: image,
+        data: { clickUrl: link },
+      });
     }, Push_Notification_Api);
 
     return () => unsubscribe();
