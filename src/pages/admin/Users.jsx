@@ -33,8 +33,13 @@ import { setAdminUsersData } from "../../store/features/AdminUsers.reducer";
 
 const Users = () => {
   const dispatch = useDispatch();
-  const { usersLocal, lastDocLocal, statesLocal, lastFetchedLocal } =
-    useSelector((state) => state.adminUsers);
+  const {
+    usersLocal,
+    lastDocLocal,
+    statesLocal,
+    lastFetchedLocal,
+    hasMoreLocal,
+  } = useSelector((state) => state.adminUsers);
   const { limit } = useTheme();
   const [loadingStates, setLoadingStates] = useState(true);
   const [refreshLoading, setRefreshLoading] = useState(false);
@@ -71,7 +76,7 @@ const Users = () => {
     if (isDefaultFilters && isCacheValid && usersLocal?.length > 0) {
       setUsers(usersLocal);
       setLastDoc(lastDocLocal);
-      if (lastDocLocal !== null) setHasMore(true);
+      setHasMore(hasMoreLocal);
       setLoading(false);
       return;
     }
@@ -122,10 +127,12 @@ const Users = () => {
         !debounceSearch && status === "all" && roleFilter === "all";
       if (reset && isDefaultFilters) {
         const serializedUsers = serializeData(newUsers);
+        const hasMoreRes = newUsers.length >= limit && !!newLastDoc;
         dispatch(
           setAdminUsersData({
             usersLocal: serializedUsers,
             lastDocLocal: newLastDoc,
+            hasMoreLocal: hasMoreRes,
             lastFetchedLocal: Date.now(),
           }),
         );
@@ -456,7 +463,12 @@ const Users = () => {
       <div className="custom-table-card">
         <h3 className="custom-section-title">User Records </h3>
         <div className="custom-table-filters">
-          <Input value={search} setValue={setSearch} placeholder="Search..." />
+          <Input
+            margin="0px"
+            value={search}
+            setValue={setSearch}
+            placeholder="Search..."
+          />
 
           <Selector
             width="200px"

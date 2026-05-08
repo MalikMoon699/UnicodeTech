@@ -82,13 +82,16 @@
 
 :root {
   /* px based spacing */
+  --space-px-4-8: clamp(4px, 2vw, 8px);
   --space-px-4-10: clamp(4px, 2vw, 10px);
   --space-px-6-12: clamp(6px, 2vw, 12px);
   --space-px-8-14: clamp(8px, 2vw, 14px);
   --space-px-8-16: clamp(8px, 2vw, 16px);
+  --space-px-12-16: clamp(12px, 2vw, 16px);
   --space-px-12-20: clamp(12px, 2vw, 20px);
   --space-px-16-24: clamp(16px, 2vw, 24px);
   --space-px-18-30: clamp(18px, 2vw, 30px);
+  --space-px-25-40: clamp(25px, 2vw, 40px);
   --space-px-35-50: clamp(35px, 2vw, 50px);
   --space-px-80-125: clamp(80px, 10vw, 125px);
   --space-px-130-240: clamp(130px, 2vw, 240px);

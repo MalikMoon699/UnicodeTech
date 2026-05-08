@@ -3,10 +3,10 @@
   justify-content: space-between;
   align-items: center;
   background: var(--card);
-  padding: 16px;
+  padding: var(--space-px-8-16);
   border: 1px solid var(--border);
   border-radius: 10px;
-  margin-top: 40px;
+  margin-top: var(--space-px-25-40);
   width: 100%;
 }
 
@@ -14,13 +14,17 @@
   display: flex;
   flex-direction: column;
   align-items: start;
-  gap: 7px;
+  gap: var(--space-px-4-8);
   width: 100%;
+}
+
+.attendance-top-card-content > h4{
+  font-size: var(--space-px-12-20);
 }
 
 .attendance-top-card-content > p {
   color: var(--muted-foreground);
-  font-size: 14px;
+  font-size: var(--space-px-12-16);
   font-weight: 100;
 }
 

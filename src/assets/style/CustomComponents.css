@@ -761,6 +761,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+  margin-bottom: 10px;
 }
 
 .custom-table-wrapper {
@@ -1082,5 +1083,11 @@
   .custom-dashboard-stat-icon {
     height: var(--space-px-35-50);
     width: var(--space-px-35-50);
+  }
+
+  .custom-table-filters{
+    flex-wrap: wrap;
+    justify-content: start;
+    gap: var(--space-px-6-12);
   }
 }

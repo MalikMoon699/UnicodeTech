@@ -5,6 +5,7 @@ const initialState = {
   usersLocal: [],
   lastDocLocal: null,
   lastFetchedLocal: null,
+  hasMoreLocal: false,
 };
 
 const adminUsersSlice = createSlice({
@@ -25,6 +26,9 @@ const adminUsersSlice = createSlice({
       if (action.payload.lastFetchedLocal !== undefined) {
         state.lastFetchedLocal = action.payload.lastFetchedLocal;
       }
+      if (action.payload.hasMoreLocal !== undefined) {
+        state.hasMoreLocal = action.payload.hasMoreLocal;
+      }
     },
 
     clearAdminUsersData: (state) => {
@@ -32,6 +36,7 @@ const adminUsersSlice = createSlice({
       state.usersLocal = [];
       state.lastDocLocal = null;
       state.lastFetchedLocal = null;
+      state.hasMoreLocal = false;
     },
   },
 });
