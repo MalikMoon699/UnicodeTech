@@ -572,7 +572,7 @@ export const StatesCard = ({
         </h3>
       </div>
       <div className="custom-dashboard-stat-icon">
-        <Icon color={iColor} />
+        <Icon color={iColor}  />
       </div>
     </div>
   );

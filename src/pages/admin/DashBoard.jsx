@@ -48,14 +48,13 @@ const DashBoard = () => {
   const [leaveDistribution, setLeaveDistribution] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [report, setReport] = useState([]);
-  const FIVE_MIN = 5 * 60 * 1000;
-
+  const FIVE_HOUR = 5 * 60 * 60 * 1000;
   useEffect(() => {
     const is30 = dayFilter === 30;
 
     const isCacheValid = is30
-      ? lastFetched30DayLocal && Date.now() - lastFetched30DayLocal < FIVE_MIN
-      : lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_MIN;
+      ? lastFetched30DayLocal && Date.now() - lastFetched30DayLocal < FIVE_HOUR
+      : lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_HOUR;
 
     const hasData = is30 ? states30DayLocal : statesLocal;
 
@@ -77,48 +76,48 @@ const DashBoard = () => {
     getData(dayFilter);
   }, [dayFilter]);
 
-const getData = async (days, refresh = false) => {
-  try {
-    if (refresh) setRefreshLoading(true);
-    else setLoading(true);
+  const getData = async (days, refresh = false) => {
+    try {
+      if (refresh) setRefreshLoading(true);
+      else setLoading(true);
 
-    const res = await getDashboardData(days);
+      const res = await getDashboardData(days);
 
-    setStates(res?.States);
-    setAttendance(res?.attendanceTrend);
-    setLeaveDistribution(res?.leaveTypeDistribution);
-    setReport(res?.reportSubmistion);
+      setStates(res?.States);
+      setAttendance(res?.attendanceTrend);
+      setLeaveDistribution(res?.leaveTypeDistribution);
+      setReport(res?.reportSubmistion);
 
-    if (days === 30) {
-      dispatch(
-        setAdmin30DayDashBoardData({
-          states30DayLocal: res?.States,
-          leave30DayDistributionLocal: res?.leaveTypeDistribution,
-          attendance30DayLocal: res?.attendanceTrend,
-          report30DayLocal: res?.reportSubmistion,
-          lastFetched30DayLocal: Date.now(),
-        }),
-      );
-    } else {
-      dispatch(
-        setAdminDashBoardData({
-          statesLocal: res?.States,
-          leaveDistributionLocal: res?.leaveTypeDistribution,
-          attendanceLocal: res?.attendanceTrend,
-          reportLocal: res?.reportSubmistion,
-          lastFetchedLocal: Date.now(),
-        }),
-      );
+      if (days === 30) {
+        dispatch(
+          setAdmin30DayDashBoardData({
+            states30DayLocal: res?.States,
+            leave30DayDistributionLocal: res?.leaveTypeDistribution,
+            attendance30DayLocal: res?.attendanceTrend,
+            report30DayLocal: res?.reportSubmistion,
+            lastFetched30DayLocal: Date.now(),
+          }),
+        );
+      } else {
+        dispatch(
+          setAdminDashBoardData({
+            statesLocal: res?.States,
+            leaveDistributionLocal: res?.leaveTypeDistribution,
+            attendanceLocal: res?.attendanceTrend,
+            reportLocal: res?.reportSubmistion,
+            lastFetchedLocal: Date.now(),
+          }),
+        );
+      }
+
+      if (refresh) toast.success("data refreshed successfully.");
+    } catch (err) {
+      console.error("Failed to load Dashboard:", err);
+    } finally {
+      setLoading(false);
+      setRefreshLoading(false);
     }
-
-    if (refresh) toast.success("data refreshed successfully.");
-  } catch (err) {
-    console.error("Failed to load Dashboard:", err);
-  } finally {
-    setLoading(false);
-    setRefreshLoading(false);
-  }
-};
+  };
 
   return (
     <div className="page-container">

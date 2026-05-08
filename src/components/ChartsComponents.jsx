@@ -25,15 +25,6 @@ const pieColors = [
   "#FF7F50",
   "#FFD700",
 ];
-// const pieColors = [
-//   "#FFCE56",
-//   "#36A2EB",
-//   "#FF6384",
-//   "#00CED1",
-//   "#8A2BE2",
-//   "#FF7F50",
-//   "#FFD700",
-// ];
 
 const renderYAxisTick = ({ x, y, payload }) => {
   const value = payload.value;
@@ -137,7 +128,6 @@ export const BarChart = ({ data, height = 220, width = "100%" }) => {
     credits: "var(--primary)",
   };
 
-
   return (
     <ResponsiveContainer width={width} height={height}>
       <ReBarChart data={data}>
@@ -187,9 +177,12 @@ export const PieChart = ({ data, height = 220, width = "100%" }) => {
 
   return (
     <div style={{ width: "100%" }}>
-      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+      <div
+        className="pie-chart-divid"
+        style={{ display: "flex", gap: "20px", alignItems: "center" }}
+      >
         <div style={{ flex: 1 }}>
-          <ResponsiveContainer width={width} height={height}>
+          <ResponsiveContainer minWidth="180px" width={width} height={height}>
             <RePieChart>
               <Pie
                 data={chartData}
@@ -237,7 +230,7 @@ export const PieChart = ({ data, height = 220, width = "100%" }) => {
           </ResponsiveContainer>
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, width: "100%", marginLeft: "30px" }}>
           {data.map((item, index) => (
             <div
               key={index}

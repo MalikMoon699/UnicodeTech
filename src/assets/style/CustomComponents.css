@@ -623,16 +623,16 @@
 /* ===== DashBoard States card ====== */
 .custom-dashboard-stats-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--space-px-130-240), 1fr));
   gap: 10px;
   margin-bottom: 20px;
 }
 
 .custom-dashboard-stat-card {
   background: var(--card);
-  padding: 20px;
-  min-height: 125px;
-  border-radius: 12px;
+  padding: var(--space-px-12-20);
+  min-height: var(--space-px-80-125);
+  border-radius: var(--radius-px-8-12);
   border: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -649,20 +649,20 @@
 }
 
 .custom-dashboard-stat-title {
-  font-size: 14px;
+  font-size: var(--space-px-8-14);
   font-weight: 700;
   line-height: 18px;
 }
 
 .custom-dashboard-stat-value {
-  font-size: 30px;
+  font-size: var(--space-px-18-30);
   font-weight: 600;
 }
 
 .custom-dashboard-stat-icon {
   height: 50px;
   width: 50px;
-  border-radius: 10px;
+  border-radius: var(--radius-px-6-10);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1076,4 +1076,11 @@
 
 .user-hover-action-btn:hover > .icon {
   transform: scale(1.08);
+}
+
+@media (max-width: 768px) {
+  .custom-dashboard-stat-icon {
+    height: var(--space-px-35-50);
+    width: var(--space-px-35-50);
+  }
 }

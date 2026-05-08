@@ -59,7 +59,7 @@ const DashBoard = () => {
   const [teamAttendance, setTeamAttendance] = useState([]);
   const [teamReport, setTeamReport] = useState([]);
 
-  const FIVE_MIN = 5 * 60 * 1000;
+  const FIVE_HOUR = 5 * 60 * 60 * 1000;
 
   useEffect(() => {
     if (!userId) return;
@@ -68,7 +68,7 @@ const DashBoard = () => {
 
     if (isMyTab) {
       const isCacheValid =
-        lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_MIN;
+        lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_HOUR;
       if (isCacheValid && statesLocal) {
         setStates(statesLocal);
         setWeeklyHour(weeklyHourLocal);
@@ -78,7 +78,7 @@ const DashBoard = () => {
       }
     } else {
       const isCacheValid =
-        teamLastFetchedLocal && Date.now() - teamLastFetchedLocal < FIVE_MIN;
+        teamLastFetchedLocal && Date.now() - teamLastFetchedLocal < FIVE_HOUR;
       if (isCacheValid && teamStatesLocal) {
         setStates(teamStatesLocal);
         setTeamAttendance(teamAttendanceLocal);

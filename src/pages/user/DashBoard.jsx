@@ -41,6 +41,7 @@ const DashBoard = () => {
   const hasWeeklyHourData = weeklyHourLocal?.length > 0;
   const hasLeaveDistributionData = leaveDistributionLocal?.length > 0;
   const hasAttendanceTrendData = attendanceTrendLocal?.length > 0;
+  const FIVE_HOUR = 5 * 60 * 60 * 1000;
   const hasData =
     hasStatesData ||
     hasWeeklyHourData ||
@@ -49,9 +50,8 @@ const DashBoard = () => {
 
   useEffect(() => {
     if (!userId) return;
-    const FIVE_MIN = 5 * 60 * 1000;
     const isCacheValid =
-      lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_MIN;
+    lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_HOUR;
     if (isCacheValid && hasData) {
       return;
     } else {

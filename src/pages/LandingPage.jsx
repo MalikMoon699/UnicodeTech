@@ -88,7 +88,7 @@ const LandingPage = () => {
           >
             Get Started
             <span className="icon">
-              <ArrowRight />
+              <ArrowRight className="size-18-24" />
             </span>
           </button>
         </div>
