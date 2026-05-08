@@ -40,6 +40,7 @@ import {
   Shield,
   MessageSquare,
   LogOut,
+  ChevronLeft,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -63,6 +64,7 @@ const Chats = () => {
   const userId = currentUser?.userId;
   const authId = currentUser?.authId;
   const [chats, setChats] = useState([]);
+  const [isOpenSide, setIsOpenSide] = useState(false);
   const [chatsLoading, setChatsLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -101,6 +103,7 @@ const Chats = () => {
   const waitingForServerSnapshot = useRef(true);
   const previousScrollHeightRef = useRef(0);
   const previousScrollTopRef = useRef(0);
+  const sidebarRef = useRef(null);
 
   const MESSAGES_PAGE_SIZE = message_limit || 30;
 
@@ -164,6 +167,20 @@ const Chats = () => {
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsOpenSide(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   useLayoutEffect(() => {
@@ -500,7 +517,9 @@ const Chats = () => {
       isOptimistic: true,
     };
     setMessages((prev) => [...prev, messageObj]);
-
+    requestAnimationFrame(() => {
+      scrollToBottom("smooth");
+    });
     try {
       await sendMessage(
         activeChat,
@@ -612,111 +631,77 @@ const Chats = () => {
 
   return (
     <div className="chat-container">
-      <div className="chat-sidebar">
-        <div className="chat-search">
-          <Search size={16} />
-          <input
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="chat-section">
-          <div
-            className="chat-section-header"
-            onClick={() => setShowGroups(!showGroups)}
+      <div ref={sidebarRef} className="chat-sidebar-outer">
+        {activeChat && (
+          <button
+            className="chat-sidebar-controller-btn"
+            onClick={() => setIsOpenSide(!isOpenSide)}
           >
-            {currentUser?.role === "admin" ? (
-              <>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "2px",
-                  }}
-                >
+            {isOpenSide ? <ChevronLeft /> : <ChevronRight />}
+          </button>
+        )}
+        <div
+          className={`${isOpenSide || !activeChat ? "isOpen" : "isClose"} chat-sidebar`}
+        >
+          <div className="chat-search">
+            <Search size={16} />
+            <input
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="chat-section">
+            <div
+              className="chat-section-header"
+              onClick={() => setShowGroups(!showGroups)}
+            >
+              {currentUser?.role === "admin" ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "2px",
+                    }}
+                  >
+                    {showGroups ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
+                    <span>CHANNELS</span>
+                  </div>
+                  <span
+                    className="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCreating(true);
+                    }}
+                  >
+                    <Plus size={16} />
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span>CHANNELS</span>
                   {showGroups ? (
                     <ChevronDown size={16} />
                   ) : (
                     <ChevronRight size={16} />
                   )}
-                  <span>CHANNELS</span>
-                </div>
-                <span
-                  className="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCreating(true);
-                  }}
-                >
-                  <Plus size={16} />
-                </span>
-              </>
-            ) : (
-              <>
-                <span>CHANNELS</span>
-                {showGroups ? (
-                  <ChevronDown size={16} />
-                ) : (
-                  <ChevronRight size={16} />
-                )}
-              </>
-            )}
-          </div>
-
-          {showGroups && (
-            <div className="chat-list">
-              {chatsLoading ? (
-                <Loader size="30" style={{ height: "100px" }} />
-              ) : groupChats?.length > 0 ? (
-                groupChats.map((chat) => (
-                  <div
-                    key={chat.id}
-                    className={`chat-item ${
-                      activeChat === (chat.chatId || chat.id) ? "active" : ""
-                    }`}
-                    onClick={() =>
-                      setParams({ chatId: chat.chatId || chat.id })
-                    }
-                    style={{ padding: "7px" }}
-                  >
-                    <Hash size={16} />
-                    <span>{chat.name || "group"}</span>
-                    {chat.unreadCount > 0 && (
-                      <span className="unread-badge">{chat.unreadCount}</span>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p style={{ padding: "20px" }} className="empty-data">
-                  no channel found.
-                </p>
+                </>
               )}
             </div>
-          )}
-        </div>
 
-        <div className="chat-section">
-          <div
-            className="chat-section-header"
-            onClick={() => setShowDMs(!showDMs)}
-          >
-            <span>DIRECT MESSAGES</span>
-            {showDMs ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </div>
-
-          {showDMs && (
-            <div className="chat-list">
-              {chatsLoading ? (
-                <Loader size="30" style={{ height: "100px" }} />
-              ) : directChats?.length > 0 ? (
-                directChats.map((chat) => {
-                  const otherId = chat.members?.find((id) => id !== userId);
-                  const otherUser = userMap[otherId];
-
-                  return (
+            {showGroups && (
+              <div className="chat-list">
+                {chatsLoading ? (
+                  <Loader size="30" style={{ height: "100px" }} />
+                ) : groupChats?.length > 0 ? (
+                  groupChats.map((chat) => (
                     <div
                       key={chat.id}
                       className={`chat-item ${
@@ -725,92 +710,141 @@ const Chats = () => {
                       onClick={() =>
                         setParams({ chatId: chat.chatId || chat.id })
                       }
+                      style={{ padding: "7px" }}
                     >
-                      <ProfileImage
-                        Image={
-                          otherUser?.ProfileImage ||
-                          IMAGES[otherUser?.placeId] ||
-                          IMAGES.PlaceHolder
-                        }
-                        className="chat-item-profile"
-                        style={{ border: "none" }}
-                      />
-                      <span>{otherUser?.fullName || otherUser?.email}</span>
+                      <Hash size={16} />
+                      <span>{chat.name || "group"}</span>
                       {chat.unreadCount > 0 && (
                         <span className="unread-badge">{chat.unreadCount}</span>
                       )}
                     </div>
-                  );
-                })
-              ) : (
-                <p style={{ padding: "20px" }} className="empty-data">
-                  No chats found.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-        {(usersLoading || usersWithoutChat?.length > 0) && (
-          <div className="chat-section">
-            <div
-              className="chat-section-header"
-              onClick={() => setShowStart(!showStart)}
-            >
-              <span>START CHAT</span>
-              {showStart ? (
-                <ChevronDown size={16} />
-              ) : (
-                <ChevronRight size={16} />
-              )}
-            </div>
-
-            {showStart && (
-              <div className="chat-list">
-                {usersLoading ? (
-                  <Loader size="30" style={{ height: "100px" }} />
-                ) : usersWithoutChat?.length > 0 ? (
-                  usersWithoutChat.map((user) => (
-                    <div
-                      key={user.id}
-                      className="chat-item"
-                      aria-disabled={startChatLoading || chatsLoading}
-                      style={{
-                        cursor:
-                          startChatLoading || chatsLoading
-                            ? "progress"
-                            : "pointer",
-                      }}
-                      onClick={() => {
-                        if (startChatLoading || chatsLoading) {
-                          return;
-                        } else {
-                          handleStartChat(user.docId, user.id);
-                        }
-                      }}
-                    >
-                      <ProfileImage
-                        Image={
-                          user?.ProfileImage ||
-                          IMAGES[user?.placeId] ||
-                          IMAGES.PlaceHolder
-                        }
-                        className="chat-item-profile"
-                        style={{ border: "none" }}
-                      />
-                      <span>{user?.fullName || user?.email}</span>
-                    </div>
                   ))
                 ) : (
                   <p style={{ padding: "20px" }} className="empty-data">
-                    No user found.
+                    no channel found.
                   </p>
                 )}
               </div>
             )}
           </div>
-        )}
-      </div>
 
+          <div className="chat-section">
+            <div
+              className="chat-section-header"
+              onClick={() => setShowDMs(!showDMs)}
+            >
+              <span>DIRECT MESSAGES</span>
+              {showDMs ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </div>
+
+            {showDMs && (
+              <div className="chat-list">
+                {chatsLoading ? (
+                  <Loader size="30" style={{ height: "100px" }} />
+                ) : directChats?.length > 0 ? (
+                  directChats.map((chat) => {
+                    const otherId = chat.members?.find((id) => id !== userId);
+                    const otherUser = userMap[otherId];
+
+                    return (
+                      <div
+                        key={chat.id}
+                        className={`chat-item ${
+                          activeChat === (chat.chatId || chat.id)
+                            ? "active"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          setParams({ chatId: chat.chatId || chat.id })
+                        }
+                      >
+                        <ProfileImage
+                          Image={
+                            otherUser?.ProfileImage ||
+                            IMAGES[otherUser?.placeId] ||
+                            IMAGES.PlaceHolder
+                          }
+                          className="chat-item-profile"
+                          style={{ border: "none" }}
+                        />
+                        <span>{otherUser?.fullName || otherUser?.email}</span>
+                        {chat.unreadCount > 0 && (
+                          <span className="unread-badge">
+                            {chat.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p style={{ padding: "20px" }} className="empty-data">
+                    No chats found.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          {(usersLoading || usersWithoutChat?.length > 0) && (
+            <div className="chat-section">
+              <div
+                className="chat-section-header"
+                onClick={() => setShowStart(!showStart)}
+              >
+                <span>START CHAT</span>
+                {showStart ? (
+                  <ChevronDown size={16} />
+                ) : (
+                  <ChevronRight size={16} />
+                )}
+              </div>
+
+              {showStart && (
+                <div className="chat-list">
+                  {usersLoading ? (
+                    <Loader size="30" style={{ height: "100px" }} />
+                  ) : usersWithoutChat?.length > 0 ? (
+                    usersWithoutChat.map((user) => (
+                      <div
+                        key={user.id}
+                        className="chat-item"
+                        aria-disabled={startChatLoading || chatsLoading}
+                        style={{
+                          cursor:
+                            startChatLoading || chatsLoading
+                              ? "progress"
+                              : "pointer",
+                        }}
+                        onClick={() => {
+                          if (startChatLoading || chatsLoading) {
+                            return;
+                          } else {
+                            handleStartChat(user.docId, user.id);
+                          }
+                        }}
+                      >
+                        <ProfileImage
+                          Image={
+                            user?.ProfileImage ||
+                            IMAGES[user?.placeId] ||
+                            IMAGES.PlaceHolder
+                          }
+                          className="chat-item-profile"
+                          style={{ border: "none" }}
+                        />
+                        <span>{user?.fullName || user?.email}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p style={{ padding: "20px" }} className="empty-data">
+                      No user found.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       <div className="chat-main">
         {!activeChat ? (
           <div className="chat-empty">
@@ -827,7 +861,19 @@ const Chats = () => {
                 style={{ justifyContent: "space-between" }}
                 className="chat-topbar"
               >
-                <div style={{ flexDirection: "row", gap: "10px" }}>
+                <div
+                  style={{
+                    flexDirection: "row",
+                    gap: "10px",
+                    alignItems: "center",
+                  }}
+                >
+                  <button
+                    onClick={() => setParams({})}
+                    className="chat-topbar-btn close-chat"
+                  >
+                    <ChevronLeft />
+                  </button>
                   <Hash size={18} />
                   <div>
                     <h4>{activeChatData?.name || "Unnamed Group"}</h4>
@@ -843,6 +889,12 @@ const Chats = () => {
               </div>
             ) : (
               <div className="chat-topbar">
+                <button
+                  onClick={() => setParams({})}
+                  className="chat-topbar-btn close-chat"
+                >
+                  <ChevronLeft />
+                </button>
                 <ProfileImage
                   Image={
                     activeChatUser?.ProfileImage ||

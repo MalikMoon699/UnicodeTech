@@ -5,12 +5,40 @@
   background: var(--background);
 }
 
+.chat-sidebar-outer {
+  position: relative;
+}
+
 .chat-sidebar {
   width: 300px;
   background: var(--secondary);
   border-right: 1px solid var(--border);
   padding: 12px;
   overflow-y: auto;
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.isClose.chat-sidebar {
+  width: 0px;
+  overflow: hidden;
+  padding: 0px;
+}
+
+.chat-sidebar-controller-btn {
+  position: absolute;
+  top: 50%;
+  right: -31px;
+  opacity: 2;
+  background: var(--secondary);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0px 5px 5px 0px;
+  font-size: 0px;
+  padding: 10px 3px;
+  cursor: pointer;
+  z-index: 1;
 }
 
 .chat-search {
@@ -435,6 +463,10 @@
   transform: rotate(90deg);
 }
 
+.chat-topbar-btn.close-chat {
+  display: none;
+}
+
 /* ======================== Create Group ======================== */
 
 .group-create-search {
@@ -653,4 +685,16 @@
   color: var(--border);
   border-radius: 10px;
   font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .chat-topbar-btn.close-chat {
+    display: flex;
+  }
+  .chat-sidebar-controller-btn {
+    display: none;
+  }
+  .chat-sidebar {
+    width: 100vw;
+  }
 }
