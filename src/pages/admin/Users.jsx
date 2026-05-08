@@ -4,6 +4,7 @@ import {
   updateUserStatus,
   updateUserRole,
   getUserStatesHelper,
+  serializeUsers,
 } from "../../services/admin/users.serveces";
 import {
   Header,
@@ -25,41 +26,72 @@ import {
   UserMinus,
   UserPen,
   UserX,
+  RefreshCcw,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+import { useDispatch, useSelector } from "react-redux";
+import { setAdminUsersData } from "../../store/features/AdminUsers.reducer";
 
 const Users = () => {
+  const dispatch = useDispatch();
+  const { usersLocal, lastDocLocal, statesLocal, lastFetchedLocal } =
+    useSelector((state) => state.adminUsers);
   const { limit } = useTheme();
   const [loadingStates, setLoadingStates] = useState(true);
+  const [refreshLoading, setRefreshLoading] = useState(false);
   const [states, setStates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(null);
   const [roleLoading, setRoleLoading] = useState(null);
-
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
-
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
-
   const debounceSearch = useDebounce(search, 500);
+  const FIVE_HOUR = 5 * 60 * 60 * 1000;
 
   useEffect(() => {
+    const isCacheValid =
+      lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_HOUR;
+    if (isCacheValid && statesLocal !== null) {
+      setLoadingStates(false);
+      setStates(statesLocal);
+      return;
+    }
     fetchUsersStates();
   }, []);
 
   useEffect(() => {
+    const isCacheValid =
+      lastFetchedLocal && Date.now() - lastFetchedLocal < FIVE_HOUR;
+    const isDefaultFilters =
+      !debounceSearch && status === "all" && roleFilter === "all";
+    if (isDefaultFilters && isCacheValid && usersLocal?.length > 0) {
+      setUsers(usersLocal);
+      setLastDoc(lastDocLocal);
+      if (lastDocLocal !== null) setHasMore(true);
+      setLoading(false);
+      return;
+    }
+
     fetchUsers(true);
   }, [debounceSearch, status, roleFilter]);
 
-  const fetchUsersStates = async () => {
+  const fetchUsersStates = async (isRefresh = false) => {
+    console.log("fetchUsersStates----> hit");
     try {
-      setLoadingStates(true);
+      if (!isRefresh) setLoadingStates(true);
       const res = await getUserStatesHelper();
       setStates(res);
+      console.log("res---->", res);
+      dispatch(
+        setAdminUsersData({
+          statesLocal: res,
+        }),
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -67,9 +99,9 @@ const Users = () => {
     }
   };
 
-  const fetchUsers = async (reset = false) => {
+  const fetchUsers = async (reset = false, isRefresh = false) => {
     try {
-      if (reset) {
+      if (reset && !isRefresh) {
         setLoading(true);
         setUsers([]);
         setLastDoc(null);
@@ -88,6 +120,19 @@ const Users = () => {
 
       const newUsers = res?.users || [];
       const newLastDoc = res?.meta?.lastDoc || null;
+
+      const isDefaultFilters =
+        !debounceSearch && status === "all" && roleFilter === "all";
+      if (reset && isDefaultFilters) {
+        const serializedUsers = serializeUsers(newUsers);
+        dispatch(
+          setAdminUsersData({
+            usersLocal: serializedUsers,
+            lastDocLocal: newLastDoc,
+            lastFetchedLocal: Date.now(),
+          }),
+        );
+      }
 
       setUsers((prev) => (reset ? newUsers : [...prev, ...newUsers]));
 
@@ -108,6 +153,16 @@ const Users = () => {
   const handleLoadMore = () => {
     if (!hasMore || loadMoreLoading) return;
     fetchUsers(false);
+  };
+
+  const updateReduxUsersCache = (callback) => {
+    const updatedUsers = callback(usersLocal || []);
+
+    dispatch(
+      setAdminUsersData({
+        usersLocal: updatedUsers,
+      }),
+    );
   };
 
   const handleStatusChange = async (user, newStatus) => {
@@ -132,6 +187,11 @@ const Users = () => {
 
             return true;
           }),
+      );
+      updateReduxUsersCache((prev) =>
+        prev.map((u) =>
+          u.authId === user.authId ? { ...u, status: newStatus } : u,
+        ),
       );
 
       toast.success("Status updated");
@@ -168,7 +228,9 @@ const Users = () => {
             return true;
           }),
       );
-
+      updateReduxUsersCache((prev) =>
+        prev.map((u) => (u.authId === userId ? { ...u, role: newRole } : u)),
+      );
       toast.success(`Role changed to ${newRole}`);
     } catch (err) {
       toast.error(err.message || "Role update failed");
@@ -220,11 +282,11 @@ const Users = () => {
     },
     {
       name: "last Active",
-      row: (row) => (row.lastActive?.toDate ? timeAgo(row.lastActive) : "-"),
+      row: (row) => (row.lastActive ? timeAgo(row.lastActive) : "-"),
     },
     {
       name: "Joined",
-      row: (row) => (row.createdAt?.toDate ? formateDate(row.createdAt) : "-"),
+      row: (row) => (row.createdAt ? formateDate(row.createdAt) : "-"),
     },
     {
       name: "Actions",
@@ -339,9 +401,28 @@ const Users = () => {
     },
   ];
 
+  const handleRefresh = async () => {
+    setRefreshLoading(true);
+    await fetchUsersStates(true);
+    await fetchUsers(true, true);
+    setRefreshLoading(false);
+    toast.success("Data refreshed successfully.");
+  };
+
   return (
     <div className="page-container">
-      <Header title="User Management" desc="Manage platform users" />
+      <Header
+        title="User Management"
+        desc="Manage platform users"
+        context={
+          <button onClick={handleRefresh} className="leave-submit-btn">
+            <span className={`icon ${refreshLoading ? "refresh-loading" : ""}`}>
+              <RefreshCcw size={18} />
+            </span>
+            Refresh
+          </button>
+        }
+      />
       <div
         style={{ margin: "30px 0px" }}
         className="custom-dashboard-stats-container"

@@ -12,7 +12,8 @@ import {
   serverTimestamp,
   getDoc,
   setDoc,
-  deleteDoc,getCountFromServer
+  deleteDoc,
+  getCountFromServer,
 } from "firebase/firestore";
 
 export const getUserStatesHelper = async () => {
@@ -257,4 +258,22 @@ export const updateUserRole = async ({ authId, newRole }) => {
     console.error("updateUserRole error:", err);
     throw err;
   }
+};
+
+export const serializeUsers = (users = []) => {
+  return users.map((user) => {
+    const serializedUser = {};
+
+    Object.keys(user).forEach((key) => {
+      const value = user[key];
+
+      if (value?.toMillis) {
+        serializedUser[key] = value.toMillis();
+      } else {
+        serializedUser[key] = value;
+      }
+    });
+
+    return serializedUser;
+  });
 };
