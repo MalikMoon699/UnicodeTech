@@ -25,6 +25,83 @@
 }
 
 :root {
+    --background: #ffffff;
+  --gradian-background: linear-gradient(
+    135deg,
+    #fff8f6 0%,
+    #ffe9e3 30%,
+    #ffd3ca 60%,
+    #fff8f6 100%
+  );
+
+  --foreground: #1a1a1f;
+
+  --card: #ffffff;
+  --card-foreground: #1a1a1f;
+
+  /* Primary */
+  --primary: #ee3f24;
+  --primary-dark-hover: #d6341b;
+  --primary-hover: #ee3f2424;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #fff4f1;
+  --secondary-foreground: #4d2a22;
+
+  /* Muted */
+  --muted: #fff6f3;
+  --muted-foreground: #7a6a65;
+
+  /* Border */
+  --border: #f2d6cf;
+
+  /* Status */
+  --status-pending: #eab308;
+  --status-approved: #22c55e;
+  --status-rejected: #e63c3c;
+  --status-rejected-hover: #e63c3c21;
+
+  /* Shadow */
+  --shadow: #00000029;
+}
+
+.darkMode {
+    --background: #1a1a29;
+  --gradian-background: linear-gradient(
+    135deg,
+    #1c1c1f 0%,
+    #232326 40%,
+    #2b2b2f 100%
+  );
+
+  --foreground: #fafafa;
+
+  --card: #2a2a2f;
+  --card-foreground: #fafafa;
+
+  --primary: #ee3f24;
+  --primary-dark-hover: #d6341b;
+  --primary-hover: #ee3f2420;
+  --primary-foreground: #ffffff;
+
+  --secondary: #34343a;
+  --secondary-foreground: #fafafa;
+
+  --muted: #303036;
+  --muted-foreground: #b4b4bc;
+
+  --border: #44444d;
+
+  --status-pending: #eab308;
+  --status-approved: #22c55e;
+  --status-rejected: #ef4444;
+  --status-rejected-hover: #ef444420;
+
+  --shadow: #00000055;
+}
+
+/* :root {
   --background: #ffffff;
   --gradian-background: linear-gradient(
     135deg,
@@ -36,7 +113,7 @@
   --foreground: #1a1a1f;
   --card: #ffffff;
   --card-foreground: #1a1a1f;
-  --primary: #3687f4;
+  --primary: #ee3f24;
   --primary-dark-hover: #297eed;
   --primary-hover: #3688f424;
   --primary-foreground: #ffffff;
@@ -50,9 +127,9 @@
   --status-rejected: #e63c3c;
   --status-rejected-hover: #e63c3c21;
   --shadow: #00000029;
-}
+} */
 
-.darkMode {
+/* .darkMode {
   --background: #1a1a29;
   --gradian-background: linear-gradient(
     135deg,
@@ -64,7 +141,7 @@
   --foreground: #e5e5f2;
   --card: #1f1f33;
   --card-foreground: #e5e5f2;
-  --primary: #3687f4;
+  --primary: #ee3f24;
   --primary-dark-hover: rgb(41, 96, 237);
   --primary-hover: #3688f424;
   --primary-foreground: #ffffff;
@@ -78,7 +155,7 @@
   --status-rejected: #e64d4d;
   --status-rejected-hover: #e63c3c21;
   --shadow: #ffffff1c;
-}
+} */
 
 :root {
   /* px based spacing */
